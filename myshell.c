@@ -24,17 +24,28 @@ void parser(char* cmdline, char** argv) {
 /* Function to execute user commands */
 void execute(char** argv) {
     int out = 0; // Output redirection flag
+    int in = 0;  //Input redirection flag
     int file_descriptor; // File Descriptor for output file if redirection is intended
     pid_t pid;
     int status;
     char *out_file = NULL; // Output file name if any
+    char *in_file = NULL; // Input file name if any
 
-    // Check if the command contains '>' for redirection
+    // Check if the command contains '>' for redirection or '<' for input redirection
     for (int i = 0; argv[i] != NULL; i++) {
         if (strcmp(argv[i], ">") == 0) {
+            out_file = argv[i + 1]; // The next string is the output file name
             argv[i] = NULL; // Remove '>' from command
-            out_file = argv[i + 1]; // The next string in the command is the output file name
             out = 1;
+        }
+    }
+
+    // Check if the command contains '<'' for input redirection
+    for (int i = 0; argv[i] != NULL; i++) {
+        if (strcmp(argv[i], "<") == 0) {
+            in_file = argv[i + 1];
+            argv[i] = NULL;
+            in = 1;
         }
     }
 
@@ -43,11 +54,15 @@ void execute(char** argv) {
     if (pid < 0) {
         fprintf(stderr, "Fork Failed");
         exit(1);
-    }
-    else if (pid == 0) {
+    } else if (pid == 0) {
         if (out) {
             file_descriptor = open(out_file, O_WRONLY | O_CREAT, S_IRWXU);
             dup2(file_descriptor, STDOUT_FILENO);
+            close(file_descriptor);
+        }
+        if (in) {
+            file_descriptor = open(in_file, O_RDONLY);
+            dup2(file_descriptor, STDIN_FILENO);
             close(file_descriptor);
         }
 
@@ -55,8 +70,7 @@ void execute(char** argv) {
             fprintf(stderr, "*** ERROR: exec failed\n");
             exit(1);
         }
-    }
-    else {
+    } else {
         while(wait(&status) != pid);
     }
 }
