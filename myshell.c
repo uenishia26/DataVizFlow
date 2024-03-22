@@ -33,7 +33,7 @@ void execute(char** argv) {
 
     // Check if the command contains '>' for redirection or '<' for input redirection
     for (int i = 0; argv[i] != NULL; i++) {
-        if (strcmp(argv[i], ">") == 0) {
+        if ((strcmp(argv[i], ">") == 0) || (strcmp(argv[i], "1>") == 0) {
             out_file = argv[i + 1]; // The next string is the output file name
             argv[i] = NULL; // Remove '>' from command
             out = 1;
