@@ -24,23 +24,34 @@ void parser(char* cmdline, char** argv) {
 /* Function to execute user commands */
 void execute(char** argv) {
     int out = 0; // Output redirection flag
-    int in = 0;  //Input redirection flag
+    int err = 0; // Error redirection flag
+    int in = 0;  // Input redirection flag
     int file_descriptor; // File Descriptor for output file if redirection is intended
     pid_t pid;
     int status;
     char *out_file = NULL; // Output file name if any
+    char *err_file = NULL; // Output file for error
     char *in_file = NULL; // Input file name if any
 
-    // Check if the command contains '>' for redirection or '<' for input redirection
+    // Check if the command contains '>' for redirection or '1>' for standard output redirection
     for (int i = 0; argv[i] != NULL; i++) {
-        if ((strcmp(argv[i], ">") == 0) || (strcmp(argv[i], "1>") == 0) {
+        if (strcmp(argv[i], ">") == 0 || (strcmp(argv[i], "1>") == 0)) {
             out_file = argv[i + 1]; // The next string is the output file name
             argv[i] = NULL; // Remove '>' from command
             out = 1;
         }
     }
 
-    // Check if the command contains '<'' for input redirection
+    // Check if the command contains '2>' for error redirection
+    for (int i = 0; argv[i] != NULL; i++) {
+        if (strcmp(argv[i], "2>") == 0) {
+            err_file = argv[i + 1];
+            argv[i] = NULL;
+            err = 1;
+        }
+    }
+
+    // Check if the command contains '<' for input redirection
     for (int i = 0; argv[i] != NULL; i++) {
         if (strcmp(argv[i], "<") == 0) {
             in_file = argv[i + 1];
@@ -60,6 +71,11 @@ void execute(char** argv) {
             dup2(file_descriptor, STDOUT_FILENO);
             close(file_descriptor);
         }
+        if (err) {
+            file_descriptor = open(err_file, O_WRONLY | O_CREAT, S_IRWXU);
+            dup2(file_descriptor, STDERR_FILENO);
+            close(file_descriptor);
+        }
         if (in) {
             file_descriptor = open(in_file, O_RDONLY);
             dup2(file_descriptor, STDIN_FILENO);
@@ -74,7 +90,6 @@ void execute(char** argv) {
         while(wait(&status) != pid);
     }
 }
-
 
 int main() {
     char cmdline[MAXLINE];
