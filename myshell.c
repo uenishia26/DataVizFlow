@@ -32,6 +32,7 @@ void execute(char** argv) {
     char *out_file = NULL; // Output file name if any
     char *err_file = NULL; // Output file for error
     char *in_file = NULL; // Input file name if any
+    char *both_file = NULL; // Both stout and stdin go here if directed
 
     // Check if the command contains '>' for redirection or '1>' for standard output redirection
     for (int i = 0; argv[i] != NULL; i++) {
@@ -47,6 +48,15 @@ void execute(char** argv) {
         if (strcmp(argv[i], "2>") == 0) {
             err_file = argv[i + 1];
             argv[i] = NULL;
+            err = 1;
+        }
+    }
+
+    for (int i = 0; argv[i] != NULL; i++) {
+        if (strcmp(argv[i], "&>") == 0) {
+            both_file = argv[i + 1];
+            argv[i] = NULL;
+            out = 1;
             err = 1;
         }
     }
@@ -67,12 +77,20 @@ void execute(char** argv) {
         exit(1);
     } else if (pid == 0) {
         if (out) {
-            file_descriptor = open(out_file, O_WRONLY | O_CREAT, S_IRWXU);
+            if (both_file) {
+                file_descriptor = open(both_file, O_WRONLY | O_CREAT, S_IRWXU);
+            } else {
+                file_descriptor = open(out_file, O_WRONLY | O_CREAT, S_IRWXU);
+            }
             dup2(file_descriptor, STDOUT_FILENO);
             close(file_descriptor);
         }
         if (err) {
-            file_descriptor = open(err_file, O_WRONLY | O_CREAT, S_IRWXU);
+            if (both_file) {
+                file_descriptor = open(both_file, O_WRONLY | O_CREAT, S_IRWXU);
+            } else {
+                file_descriptor = open(err_file, O_WRONLY | O_CREAT, S_IRWXU);
+            }
             dup2(file_descriptor, STDERR_FILENO);
             close(file_descriptor);
         }
