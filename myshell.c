@@ -5,6 +5,7 @@
 #include <string.h>
 #include <fcntl.h>
 
+
 #define MAXLINE 1024
 #define MAXARGS 128
 
@@ -20,6 +21,8 @@ void parser(char* cmdline, char** argv) {
     }
     argv[i] = NULL;
 }
+
+
 
 /* Function to execute user commands */
 void execute(char** argv) {
@@ -109,29 +112,50 @@ void execute(char** argv) {
     }
 }
 
-int main() {
-    char cmdline[MAXLINE];
-    char *argv[MAXARGS];
+// This function takes a whole command line input
+void execute_separated_commands(char* cmdline) {
+    char *command;
+    char *commands[MAXARGS];
 
-    if (isatty(STDIN_FILENO)) {
-        printf("myshell> ");
+    // This will split the command line input by semicolons and white spaces
+    int i=0;
+    command = strtok(cmdline, ";");
+
+    while(command != NULL) {
+        commands[i] = command;
+        i++;
+        command = strtok(NULL, ";");
     }
+    commands[i] = NULL;
 
-    while (fgets(cmdline, sizeof(cmdline), stdin) != NULL) {
-
-        cmdline[strlen(cmdline) - 1] = '\0';
-
-        parser(cmdline, argv);
-
-        if (isatty(STDIN_FILENO)) {
-            printf("myshell> ");
-        }
+    // Execute each command separately
+    for(int j = 0; j < i; j++) {
+        char *argv[MAXARGS];
+        parser(commands[j], argv);
 
         if (strcmp(argv[0], "exit") == 0) {
             exit(0);
         }
 
         execute(argv);
+    }
+}
+
+int main() {
+    char cmdline[MAXLINE];
+
+    if (isatty(STDIN_FILENO)) {
+        printf("myshell> ");
+    }
+
+    while (fgets(cmdline, sizeof(cmdline), stdin) != NULL) {
+        cmdline[strlen(cmdline) - 1] = '\0';
+
+        execute_separated_commands(cmdline);
+
+        if (isatty(STDIN_FILENO)) {
+            printf("myshell> ");
+        }
     }
     printf("\n");
     exit(0);
