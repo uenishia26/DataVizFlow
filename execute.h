@@ -1,4 +1,3 @@
-
 #ifndef CS410_PROJECT_2_EXECUTE_H
 #define CS410_PROJECT_2_EXECUTE_H
 
@@ -62,7 +61,6 @@ void execute(char** argv) {
             in = 1;
         }
     }
-
 
     if (out) {
         if (both_file) {
@@ -166,12 +164,12 @@ void execute_separated_commands(char* cmdline) {
             }
         }
 
-        Command *nextCommand = current->next;
+        Command *next_command = current->next;
 
         free(current->argv);
         free(current);
 
-        current = nextCommand;
+        current = next_command;
     }
 }
 
