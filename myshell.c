@@ -3,11 +3,34 @@
 #include <unistd.h>
 #include <sys/wait.h>
 #include <string.h>
+#include <signal.h>
 #include <fcntl.h>
 
 
 #define MAXLINE 1024
 #define MAXARGS 128
+
+pid_t childpids[MAXLINE];
+int childpids_size = 0;
+
+void sigint_handler(int sig_num)
+{
+    signal(SIGINT, sigint_handler);
+    for(int i = 0; i < childpids_size; i++) {
+        if(childpids[i] != 0) {
+            kill(childpids[i], SIGINT);
+        }
+    }
+    printf("\nStopped all foreground processes.\n");
+    fflush(stdout);
+}
+
+void sigchld_handler(int sig_num)
+{
+    // Wait for any child without blocking
+    while (waitpid((pid_t)(-1), 0, WNOHANG) > 0) {}
+}
+
 
 /* Function to parse user commands */
 void parser(char* cmdline, char** argv) {
@@ -142,6 +165,9 @@ void execute_separated_commands(char* cmdline) {
 }
 
 int main() {
+    signal(SIGINT, sigint_handler);
+    signal(SIGCHLD, sigchld_handler);
+
     char cmdline[MAXLINE];
 
     if (isatty(STDIN_FILENO)) {
