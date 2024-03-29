@@ -12,11 +12,14 @@
 /* Command structure */
 typedef struct command {
     char **argv;
+    int background;
     struct command *next;
 } Command;
 
+
 /* Function to execute user commands */
-void execute(char** argv) {
+void execute(Command *command)  {
+    char **argv = command->argv;
     int out = 0; // Output redirection flag
     int err = 0; // Error redirection flag
     int in = 0;  // Input redirection flag
@@ -114,7 +117,12 @@ Command* parser(char* cmdline) {
     // Create and return the Command
     Command *cmd = malloc(sizeof(Command));
     cmd->argv = argv;
+    cmd->background = (argv[idx - 1] && strcmp(argv[idx - 1], "&") == 0);
+    if (cmd->background) {
+        argv[idx - 1] = NULL; // Remove '&'
+    }
     cmd->next = NULL;
+
     return cmd;
 }
 
@@ -150,7 +158,7 @@ void execute_separated_commands(char* cmdline) {
             fprintf(stderr, "Fork Failed");
             exit(1);
         } else if (pid == 0) {
-            execute(current->argv);
+            execute(current);
             exit(0); //important to exit otherwise it will continue to execute the remaining commands in the child
         } else {
             if (!strcmp(current->argv[0], "cd")) { // if the command is "cd"
@@ -159,7 +167,13 @@ void execute_separated_commands(char* cmdline) {
                         fprintf(stderr, "chdir failed\n"); // print an error message if it fails
                     }
                 }
-            } else {
+
+            }
+            if (current->background) {
+                printf("Background task running... pid: %d, Command: %s\n", pid, current->argv[0]);
+            }
+
+            else {
                 waitpid(pid, &status, 0); //Ensure you don't have zombie process
             }
         }
