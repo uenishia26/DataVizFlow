@@ -28,8 +28,10 @@ void sigchld_handler() {
 }
 
 int main() {
+    /*
     signal(SIGINT, sigint_handler);
     signal(SIGCHLD, sigchld_handler);
+     */
 
     char cmdline[MAXLINE];
 
