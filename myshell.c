@@ -40,7 +40,11 @@ int main() {
     while (fgets(cmdline, sizeof(cmdline), stdin) != NULL) {
         cmdline[strlen(cmdline) - 1] = '\0';
 
-        execute_separated_commands(cmdline);
+        // Check if cmdline is empty
+        if(strlen(cmdline) > 0){
+            // cmdline is nonempty, safe to parse and execute commands
+            execute_separated_commands(cmdline);
+        }
 
         if (isatty(STDIN_FILENO)) {
             printf("myshell> ");
