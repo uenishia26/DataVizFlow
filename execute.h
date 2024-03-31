@@ -120,10 +120,10 @@ void execute_pipe_commands(Command *cmd) {
     pids_arr = (pid_t*)malloc(cmd_count * sizeof(pid_t));
 
     pid_t pid;
-    Command *currentCommand = cmd;
+    Command *current_command = cmd;
     int i = 0; // Counter to store pid in the array
 
-    while (currentCommand) {
+    while (current_command) {
         if (pipe(pfds) == -1) {
             perror("pipe");
             exit(EXIT_FAILURE);
@@ -136,14 +136,14 @@ void execute_pipe_commands(Command *cmd) {
                 close(prev_pipe);
             }
 
-            if (currentCommand->next) {
+            if (current_command->next) {
                 dup2(pfds[1], STDOUT_FILENO);
             }
 
             close(pfds[0]);
             close(pfds[1]);
 
-            execute(currentCommand);
+            execute(current_command);
             _exit(EXIT_FAILURE);
         } else if (pid < 0) {
             perror("fork");
@@ -157,7 +157,7 @@ void execute_pipe_commands(Command *cmd) {
         close(pfds[1]);
 
         prev_pipe = pfds[0];
-        currentCommand = currentCommand->next;
+        current_command = current_command->next;
 
         pids_arr[i++] = pid; // Store the pid of this child
     }
@@ -203,6 +203,8 @@ void execute_separated_commands(char* cmdline) {
         int status;
         pid_t pid;
 
+        signal(SIGINT, sigint_handler);
+
         if (strcmp(current->argv[0], "exit") == 0)
             exit(0);
 
@@ -211,9 +213,15 @@ void execute_separated_commands(char* cmdline) {
             fprintf(stderr, "Fork Failed");
             exit(1);
         } else if (pid == 0) {
+
+            signal(SIGINT, SIG_DFL);
+
             execute(current);
             exit(0); //important to exit otherwise it will continue to execute the remaining commands in the child
         } else {
+
+            // keep track of child pid
+            childpids[childpids_size++] = pid;
 
             if (current->background) {
                 printf("Background task running... pid: %d, Command: %s\n", pid, current->argv[0]);
@@ -222,6 +230,9 @@ void execute_separated_commands(char* cmdline) {
             else {
                 waitpid(pid, &status, 0); //Ensure you don't have zombie process
             }
+
+            // Reassign SIGINT handler in parent shell
+            signal(SIGINT, sigint_handler);
         }
 
         Command *next_command = current->next;
