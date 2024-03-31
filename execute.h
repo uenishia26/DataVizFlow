@@ -9,30 +9,8 @@
 #include <signal.h>
 #include <fcntl.h>
 #include <ctype.h>
-
-/* Command structure */
-typedef struct command {
-    char **argv;
-    int background;
-    struct command *next;
-
-} Command;
-
-void trim(char** str) {
-    char* ptr = *str;
-    int len;
-
-    // Remove leading white-spaces
-    while(isspace((unsigned char)*ptr)) ptr++;
-
-    *str = ptr;
-
-    // Remove trailing white-spaces
-    len = strlen(ptr);
-    while(len > 0 && isspace((unsigned char)ptr[len-1])) len--;
-
-    ptr[len] = '\0';
-}
+#include "parser.h"
+#include "signals.h"
 
 
 /* Function to execute user commands */
@@ -84,12 +62,11 @@ void execute(Command *command)  {
     }
     pid_t pid = fork();
     if (pid == 0) {
-
         if (out) {
             if (both_file) {
-                file_descriptor = open(both_file, O_WRONLY | O_CREAT, S_IRWXU);
+                file_descriptor = open(both_file, O_WRONLY | O_CREAT | O_TRUNC, S_IRWXU);
             } else {
-                file_descriptor = open(out_file, O_WRONLY | O_CREAT, S_IRWXU);
+                file_descriptor = open(out_file, O_WRONLY | O_CREAT | O_TRUNC, S_IRWXU);
             }
             dup2(file_descriptor, STDOUT_FILENO);
             close(file_descriptor);
@@ -97,13 +74,14 @@ void execute(Command *command)  {
 
         if (err) {
             if (both_file) {
-                file_descriptor = open(both_file, O_WRONLY | O_CREAT, S_IRWXU);
+                file_descriptor = open(both_file, O_WRONLY | O_CREAT | O_TRUNC, S_IRWXU);
             } else {
-                file_descriptor = open(err_file, O_WRONLY | O_CREAT, S_IRWXU);
+                file_descriptor = open(err_file, O_WRONLY | O_CREAT | O_TRUNC, S_IRWXU);
             }
             dup2(file_descriptor, STDERR_FILENO);
             close(file_descriptor);
         }
+
         if (in) {
             file_descriptor = open(in_file, O_RDONLY);
             dup2(file_descriptor, STDIN_FILENO);
@@ -125,81 +103,6 @@ void execute(Command *command)  {
         waitpid(pid, &status, 0);
     }
 }
-
-/* Function to parse user command */
-Command* parser(char* cmdline) {
-    // Count spaces for the number of arguments
-    int spaces = 0;
-    for (int i = 0; cmdline[i]; i++)
-        spaces += (cmdline[i] == ' ');
-
-    // Allocate memory for arguments
-    char **argv = malloc((spaces + 2) * sizeof(char*));
-
-    // Tokenize cmd_line by spaces and store the tokens in argv
-    int idx = 0;
-    char *token = strtok(cmdline, " ");
-    while (token != NULL) {
-        argv[idx++] = token;
-        token = strtok(NULL, " ");
-    }
-    argv[idx] = NULL;
-
-    // Create and return the Command
-    Command *cmd = malloc(sizeof(Command));
-    cmd->argv = argv;
-    cmd->background = (argv[idx - 1] && strcmp(argv[idx - 1], "&") == 0);
-    if (cmd->background) {
-        argv[idx - 1] = NULL; // Remove '&'
-    }
-    cmd->next = NULL;
-
-    return cmd;
-}
-
-Command* pipe_parser(char *cmdline) {
-    Command *head = NULL;
-    Command **node = &head;
-
-    char* saveptr;
-    char* line = strtok_r(cmdline, "|", &saveptr);
-
-    while (line != NULL) {
-        trim(&line);
-        *node = parser(line);
-        node = &((*node)->next);
-        line = strtok_r(NULL, "|", &saveptr);
-    }
-
-    return head;
-}
-
-/*
-void execute_pipe_commands(Command *cmd) {
-    int fd[2];
-    pid_t pid;
-    int fd_in = 0;
-
-    while (cmd != NULL) {
-        pipe(fd);
-        if ((pid = fork()) == -1) {
-            exit(EXIT_FAILURE);
-        } else if (pid == 0) {
-            dup2(fd_in, 0);
-            if (cmd->next != NULL)
-                dup2(fd[1], STDOUT_FILENO);
-            close(fd[0]);
-            execute(cmd);
-            exit(EXIT_SUCCESS);
-        } else {
-            wait(NULL);
-            close(fd[1]);
-            fd_in = fd[0];
-            cmd = cmd->next;
-        }
-    }
-}
-*/
 
 void execute_pipe_commands(Command *cmd) {
     int prev_pipe = STDIN_FILENO;
