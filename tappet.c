@@ -144,7 +144,7 @@ void get_data (void)
   }
 }
 
-void put_data ()
+void put_data (void)
 {  
   int i = 0;
   char s[80];
