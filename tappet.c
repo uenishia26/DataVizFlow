@@ -21,8 +21,8 @@ typedef struct
   int in_marker; //next slot to add data to
   int out_marker; //next slot to take data from
   pthread_mutex_t mutex; //mutex for shared buffer
-  pthread_mutex_t occupied_slot; //condition when >= 1 full buffer slots
-  pthread_mutex_t empty_slot; //condition when at least 1 empty buffer slot
+  pthread_cond_t occupied_slot; //condition when >= 1 full buffer slots
+  pthread_cond_t empty_slot; //condition when at least 1 empty buffer slot
   slot_t slot[]; //array of slots
 } buffer_t;
 
@@ -202,14 +202,14 @@ int main(int argc, char *argv[])
     total_msgs = atoi (argv[2]);
   }
 
-  thread_table = (thr_name_t*)malloc((producers + 1) * sizeof(thr_name_t));
+  thread_table = (thr_name_t*)malloc((producers) * sizeof(thr_name_t));
   if (thread_table == NULL)
   {
     fprintf (stderr, "Cannot allocate memory for thread_table");
     exit (1);
   }
   //initial the buffer
-  buff = (buffer_t*)malloc(sizeof *buff + sizeof buff->slot[0] * (size + 1));
+  buff = (buffer_t*)malloc(sizeof *buff + sizeof buff->slot[0] * (size));
   if (buff == NULL)
   {
     fprintf (stderr, "Cannot allocate memory for buff");
