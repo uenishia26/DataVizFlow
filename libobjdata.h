@@ -21,7 +21,6 @@ typedef struct
 {
   char *data; //buffer slot stored data
   size_t size; //size of the data
-  pthread_t id; //destination thread id
 } slot_t;
 
 typedef struct
@@ -37,6 +36,9 @@ typedef struct
 } buffer_t;
 
 #endif
+
+buffer_t *buff;
+pthread_t *thread_table;
 
 void *put_data (void *arg);
 

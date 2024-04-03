@@ -1,15 +1,13 @@
 #include "libobjdata.h"
 
-buffer_t *buff;
-pthread_t *thread_table;
-
 void init_buffer (buffer_t *b)
 {
   b->in_marker = b->out_marker = b->count = 0;
 
   for (int i = 0; i < b->buff_size; i++)
   {
-    b->slot[i].data = NULL;
+    b->slot[i].data = (char *) malloc (24);
+    b->slot[i].size = 0;
   }
 
   pthread_mutex_init (&b->mutex, NULL);
@@ -19,9 +17,14 @@ void init_buffer (buffer_t *b)
 
 int main(int argc, char *argv[])
 {
+  int options;
   static pthread_attr_t tattr; // thread attributes. USed for controling scheduling
   static struct sched_param tp;
   void *lib_handle;
+  char *funcList [1000];
+  int funcIndex = 0;
+  int size = 1;
+  char *typeBuffer;
   lib_handle = dlopen("./libobjdata.so", RTLD_NOW);
   
   if (!lib_handle)
@@ -29,26 +32,47 @@ int main(int argc, char *argv[])
     dlerror();
     return 1;
   }
-  
-  //get the value of the len and the number of threads
-  int size = 0;
-  if (!(argc == 2)) //check if they specify the size of buff, number of producer and msges to consumer
+
+  for(int index = 1; index < argc; index++)
   {
-    size = 1;
-  }
-  else
-  {
-    size = atoi (argv[1]);
+    if(strncmp(argv[index], "-t", 2) == 0)
+    {
+      funcList[funcIndex] = argv[++index]; 
+      funcIndex++; 
+    }
+    else
+    {   //Set getopt to start from this index 
+      optind = index; 
+      break; 
+    }
   }
 
-  thread_table = (pthread_t*)malloc((2) * sizeof(pthread_t));
+  while((options=getopt(argc, argv, "b:s:"))!=-1) 
+  {
+    switch(options)
+    {
+      case 'b':
+	typeBuffer = optarg; 
+	break; 
+      
+      case 's':
+	size = atoi(optarg); 
+	break; 
+      
+      case '?':
+	printf("Unknown option"); 
+	break; 
+    }
+  } 
+
+  thread_table = (pthread_t*)malloc((funcIndex) * sizeof(pthread_t));
   if (thread_table == NULL)
   {
     fprintf (stderr, "Cannot allocate memory for thread_table");
     exit (1);
   }
   //initial the buffer
-  buff = (buffer_t*)malloc(sizeof *buff + sizeof buff->slot[0] * (size + 1));
+  buff = (buffer_t*)malloc(sizeof(buffer_t) + sizeof(slot_t) * size);
   if (buff == NULL)
   {
     fprintf (stderr, "Cannot allocate memory for buff");
@@ -76,45 +100,31 @@ int main(int argc, char *argv[])
     fprintf (stderr, "Cannot set thread execution scope!\n");
     exit (1);
   }
-  
-  struct local_file* (*put_data)(void);
-  const char* error_msg;
-  put_data = dlsym(lib_handle, "put_data");
-  error_msg = dlerror();
-  if (error_msg)
-  {
-    dlerror();
-    dlclose(lib_handle);
-    return 1;
-  }
-  struct local_file* (*get_data)(void);
-  get_data = dlsym(lib_handle, "get_data");
-  error_msg = dlerror();
-  if (error_msg)
-  {
-    dlerror();
-    dlclose(lib_handle);
-    return 1;
-  }
 
-  if (pthread_create (&thread_table[0], &tattr, (void *(*)(void *))put_data, &buff) != 0)
+  for (int i = 0; i < funcIndex; i++)
   {
-    perror ("Unable to create thread");
-    exit (1);
+    struct local_file* (*func)(void);
+    const char* error_msg;
+    func = dlsym(lib_handle, funcList[i]);
+    error_msg = dlerror();
+    if (error_msg)
+    {
+      dlerror();
+      dlclose(lib_handle);
+      return 1;
+    }
+
+    if (pthread_create (&thread_table[i], &tattr, (void *(*)(void *))func, buff) != 0)
+    {
+      perror ("Unable to create thread");
+      exit (1);
+    }
   }
 
-  if (pthread_create (&thread_table[1], &tattr, (void *(*)(void *))get_data, &buff) != 0)
+  for (int i = 0; i < funcIndex; i++)
   {
-    perror ("Unable to create thread");
-    exit (1);
+    pthread_join (thread_table[i], NULL);
   }
-
-  printf("begin");
-
-  pthread_join (thread_table[0], NULL);
-  pthread_join (thread_table[1], NULL);
-
-  printf("end");
 
   // We don't need our mutex or condition variables any more
   pthread_mutex_destroy (&buff->mutex);
@@ -122,6 +132,7 @@ int main(int argc, char *argv[])
   pthread_cond_destroy (&buff->empty_slot);
   free(thread_table);
   free(buff);
+  dlclose(lib_handle);
 
   return 0;
 }
