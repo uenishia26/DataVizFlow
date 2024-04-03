@@ -1,165 +1,7 @@
-#include <pthread.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <assert.h>
-#include <errno.h>
-#include <unistd.h>
-#include <sched.h>
-
-typedef struct
-{
-  char *data; //buffer slot stored data
-  size_t size; //size of the data
-  pthread_t id; //destination thread id
-} slot_t;
-
-typedef struct
-{
-  int buff_size; //size of buffer
-  int count; //number of slots in the buffer
-  int in_marker; //next slot to add data to
-  int out_marker; //next slot to take data from
-  pthread_mutex_t mutex; //mutex for shared buffer
-  pthread_cond_t occupied_slot; //condition when >= 1 full buffer slots
-  pthread_cond_t empty_slot; //condition when at least 1 empty buffer slot
-  slot_t slot[]; //array of slots
-} buffer_t;
-
-typedef struct
-{
-  pthread_t producer; //creating producer identifier	    
-  pthread_t consumer; //creating consumer identifier
-} thr_name_t;
+#include "libobjdata.h"
 
 buffer_t *buff;
-
-int producers = 1;
-int total_msgs = 1;
-thr_name_t *thread_table;
-
-pthread_t lookup (pthread_t id);
-
-void produce (buffer_t *b, char *item, size_t size, pthread_t target)
-{  
-  pthread_mutex_lock (&b->mutex);
-
-  while (b->count >= b->buff_size)
-  {
-    pthread_cond_wait (&b->empty_slot, &b->mutex);
-  }
-
-  assert (b->count < b->buff_size);
-
-  b->slot[b->in_marker].data = (char *) malloc (size);
-  b->slot[b->in_marker].size = size;
-  b->slot[b->in_marker].id   = target;
-
-  //printf("%s: item is:%s", __FUNCTION__, item);
-
-  memcpy (b->slot[b->in_marker].data, item, size);
-  b->in_marker++;
-  b->in_marker %= b->buff_size;
-  b->count++;
-
-  pthread_cond_broadcast (&b->occupied_slot);
-  
-  pthread_mutex_unlock (&b->mutex);
-  
-}
-
-char *consume (buffer_t *b)
-{
-  char *item;
-  pthread_t self=pthread_self();
-
-  pthread_mutex_lock (&b->mutex);
-  while (b->count <= 0)
-    pthread_cond_wait (&b->occupied_slot, &b->mutex);
-  
-  assert (b->count > 0);
-
-  /* Check id of target thread to see message is for this thread.        */    
-  if (!pthread_equal(b->slot[b->out_marker].id, self))
-  {
-    /* Data is not for this thread. */
-
-    //printf ("%s: slot id: %lu, consumer id: %lu\n",
-    //	    __FUNCTION__,
-    //	    b->slot[b->out_marker].id,
-    //	    self);
-    pthread_mutex_unlock (&b->mutex);
-    
-    return NULL;
-  }
-  
-  item = (char *) malloc (b->slot[b->out_marker].size);
-
-  memcpy (item, b->slot[b->out_marker].data, b->slot[b->out_marker].size);
-  free (b->slot[b->out_marker].data);
-  b->out_marker++;
-  b->out_marker %= b->buff_size;
-  b->count--;
-
-  pthread_cond_broadcast (&b->empty_slot);
-
-  pthread_mutex_unlock (&b->mutex);
-
-  return (item);
-}
-
-pthread_t lookup (pthread_t id)
-{  
-  for (int i = 0; i < producers; i++)
-  {
-    if (pthread_equal (thread_table[i].producer, id))
-    {
-      return (thread_table[i].consumer);
-    }
-  }
-  
-  return (-1);
-}
-
-void get_data (void)
-{
-  char *data;
-  int i = 0;
-  
-  while (i < total_msgs)
-  {
-    while ((data = consume (buff)) == NULL)
-    {
-      //printf ("%s: Waiting. Buffer count: %d, in: %d, out %d, slot id: %lu, tid: %lu\n",
-      //	      __FUNCTION__, buffer.count, buffer.in_marker,
-      //      buffer.out_marker,
-      //      buffer.slot[buffer.out_marker].id,
-      //      pthread_self());
-    //sleep (1);
-    //sched_yield();
-    }
-    printf ("My id is %lu: Message reads: %s", pthread_self(), data);
-    free (data);
-    i++;
-  }
-}
-
-void put_data (void)
-{  
-  int i = 0;
-  char s[80];
-  pthread_t self=pthread_self();
-  pthread_t target;
-
-  target = lookup (self);
-
-  while (i < total_msgs)
-  {
-    sprintf (s, "Current count is %d, producer is %lu, target is %lu\n", i, self, target);
-    produce (buff, s, strlen(s)+1, target);
-    i++;
-  }
-}
+pthread_t *thread_table;
 
 void init_buffer (buffer_t *b)
 {
@@ -177,39 +19,36 @@ void init_buffer (buffer_t *b)
 
 int main(int argc, char *argv[])
 {
-
   static pthread_attr_t tattr; // thread attributes. USed for controling scheduling
   static struct sched_param tp;
+  void *lib_handle;
+  lib_handle = dlopen("./libobjdata.so", RTLD_NOW);
+  
+  if (!lib_handle)
+  {
+    dlerror();
+    return 1;
+  }
   
   //get the value of the len and the number of threads
   int size = 0;
-  if (!(argc == 3 || argc == 4)) //check if they specify the size of buff, number of producer and msges to consumer
+  if (!(argc == 2)) //check if they specify the size of buff, number of producer and msges to consumer
   {
-    fprintf (stderr, "Usage: %s [number_of_producers msgs_per_consumer number_of_slot]\n", argv[0]);
-    exit (1);
+    size = 1;
   }
   else
   {
-    if (argc == 4)
-    {
-      size = atoi(argv[argc - 1]);
-    }
-    else
-    {
-      size = 1;
-    }
-    producers = atoi (argv[1]);
-    total_msgs = atoi (argv[2]);
+    size = atoi (argv[1]);
   }
 
-  thread_table = (thr_name_t*)malloc((producers) * sizeof(thr_name_t));
+  thread_table = (pthread_t*)malloc((2) * sizeof(pthread_t));
   if (thread_table == NULL)
   {
     fprintf (stderr, "Cannot allocate memory for thread_table");
     exit (1);
   }
   //initial the buffer
-  buff = (buffer_t*)malloc(sizeof *buff + sizeof buff->slot[0] * (size));
+  buff = (buffer_t*)malloc(sizeof *buff + sizeof buff->slot[0] * (size + 1));
   if (buff == NULL)
   {
     fprintf (stderr, "Cannot allocate memory for buff");
@@ -237,30 +76,45 @@ int main(int argc, char *argv[])
     fprintf (stderr, "Cannot set thread execution scope!\n");
     exit (1);
   }
-
-  for (int i = 0; i < producers; i++)
+  
+  struct local_file* (*put_data)(void);
+  const char* error_msg;
+  put_data = dlsym(lib_handle, "put_data");
+  error_msg = dlerror();
+  if (error_msg)
   {
-    if (pthread_create (&thread_table[i].consumer, &tattr,(void *(*)(void *))get_data, NULL) != 0)
-    {
-      perror ("Unable to create thread");
-      exit (1);
-    }
+    dlerror();
+    dlclose(lib_handle);
+    return 1;
+  }
+  struct local_file* (*get_data)(void);
+  get_data = dlsym(lib_handle, "get_data");
+  error_msg = dlerror();
+  if (error_msg)
+  {
+    dlerror();
+    dlclose(lib_handle);
+    return 1;
   }
 
-  for (int i = 0; i < producers; i++)
+  if (pthread_create (&thread_table[0], &tattr, (void *(*)(void *))put_data, &buff) != 0)
   {
-    if (pthread_create (&thread_table[i].producer, &tattr, (void *(*)(void *))put_data, NULL) != 0)
-    {
-      perror ("Unable to create thread");
-      exit (1);
-    }
+    perror ("Unable to create thread");
+    exit (1);
   }
 
-  for (int i = 0; i < producers; i++)
+  if (pthread_create (&thread_table[1], &tattr, (void *(*)(void *))get_data, &buff) != 0)
   {
-    pthread_join (thread_table[i].producer, NULL);
-    pthread_join (thread_table[i].consumer, NULL);
+    perror ("Unable to create thread");
+    exit (1);
   }
+
+  printf("begin");
+
+  pthread_join (thread_table[0], NULL);
+  pthread_join (thread_table[1], NULL);
+
+  printf("end");
 
   // We don't need our mutex or condition variables any more
   pthread_mutex_destroy (&buff->mutex);
