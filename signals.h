@@ -13,11 +13,11 @@
 
 extern int childpids_size;
 extern pid_t childpids[];
+extern volatile sig_atomic_t signal_received;
 
+void sigint_handler();
 
-void sigint_handler(int signum);
-
-void sigchld_handler(int signum);
+void sigchld_handler();
 
 
 #endif

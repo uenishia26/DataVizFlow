@@ -55,6 +55,7 @@ void execute(Command *command)  {
             in = 1;
         }
     }
+
     pid_t pid = fork();
     if (pid == 0) {
         if (out) {
@@ -169,7 +170,6 @@ void execute_pipe_commands(Command *cmd) {
     free(pids_arr);
 }
 
-
 void execute_separated_commands(char* cmdline) {
     char *line;
     Command *command_list = NULL, *last_command = NULL;
@@ -200,7 +200,7 @@ void execute_separated_commands(char* cmdline) {
 
         signal(SIGINT, sigint_handler);
 
-        if (strcmp(current->argv[0], "exit") == 0)
+        if (current->argv[0] && strcmp(current->argv[0], "exit") == 0)
             exit(0);
 
         pid = fork();
@@ -220,6 +220,7 @@ void execute_separated_commands(char* cmdline) {
 
             if (current->background) {
                 printf("Background task running... pid: %d, Command: %s\n", pid, current->argv[0]);
+                usleep(50000);
             }
 
             else {

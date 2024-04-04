@@ -41,7 +41,7 @@ Command* parser(char* cmdline) {
     // Create and return the Command
     Command *cmd = malloc(sizeof(Command));
     cmd->argv = argv;
-    cmd->background = (argv[idx - 1] && strcmp(argv[idx - 1], "&") == 0);
+    cmd->background = (idx > 0 && argv[idx - 1] && strcmp(argv[idx - 1], "&") == 0);
     if (cmd->background) {
         argv[idx - 1] = NULL; // Remove '&'
     }

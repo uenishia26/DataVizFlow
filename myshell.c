@@ -6,6 +6,7 @@
 #include "signals.h"
 #include "execute.h"
 
+
 int main() {
 
     signal(SIGINT, sigint_handler);
@@ -27,9 +28,12 @@ int main() {
             execute_separated_commands(cmdline);
         }
 
-        if (isatty(STDIN_FILENO)) {
+        // check signal_received flag before printing the prompt
+        if (isatty(STDIN_FILENO) && !signal_received) {
             printf("myshell> ");
         }
+        signal_received = 0;
+
     }
     printf("\n");
     exit(0);
