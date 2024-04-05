@@ -1,0 +1,36 @@
+all: tapper write read observe reconstruct tapplot
+
+tapper: tapper.o
+	gcc -o tapper tapper.o
+
+write: write.o
+	gcc -o write write.o
+
+observe: observe.o
+	gcc -o observe observe.o 
+
+reconstruct: reconstruct.o
+	gcc -o reconstruct reconstruct.o
+
+tapplot: tapplot.o
+	gcc -o tapplot tapplot.o
+
+tapper.o: tapper.c
+	gcc -c tapper.c 
+
+write.o: write.c
+	gcc -c write.c
+
+observe.o: observe.c
+	gcc -c observe.c 
+	
+reconstruct.o: reconstruct.c
+	gcc -c reconstruct.c
+
+tapplot.o: tapplot.c
+	gcc -c tapplot.c
+
+
+clean: 
+	rm -f *.o tapper write read observe reconstruct tapplot dataFile.txt
+
