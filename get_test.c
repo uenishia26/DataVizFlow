@@ -2,24 +2,21 @@
 
 void *get_data (void *arg)
 {
-  buff = (buffer_t *) arg;
+  thread_arg *targ = (thread_arg *) arg;
   char *data;
-  int i = 0;
-  
-  while (i < 2)
+
+  while ((data = consume (targ->buff[1])) == NULL)
   {
-     while ((data = consume (buff)) == NULL)
-     {
-      //printf ("%s: Waiting. Buffer count: %d, in: %d, out %d, slot id: %lu, tid: %lu\n",
-      //	      __FUNCTION__, buffer.count, buffer.in_marker,
-      //      buffer.out_marker,
-      //      buffer.slot[buffer.out_marker].id,
-      //      pthread_self());
-    //sleep (1);
-    //sched_yield();
+    sched_yield();
+  }
+  while ((data = consume (targ->buff[1])) != NULL)
+  {
+    printf ("Message reads: %s \n", data);\
+    if (strcmp("EOF", data) == 0)
+    {
+      free (data);
+      pthread_exit(NULL);
     }
-    printf ("My id is %lu: Message reads: %s", pthread_self(), data);
     free (data);
-    i++;
   }
 }

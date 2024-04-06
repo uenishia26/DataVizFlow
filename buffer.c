@@ -8,7 +8,7 @@ void produce (buffer_t *b, char *item, size_t size)
   
   pthread_mutex_lock (&b->mutex);
 
-  while (b->count >= b->buff_size)
+  if (b->count >= b->buff_size)
     pthread_cond_wait (&b->empty_slot, &b->mutex);
 
   assert (b->count < b->buff_size);
@@ -18,6 +18,7 @@ void produce (buffer_t *b, char *item, size_t size)
 
   //printf("%s: item is:%s", __FUNCTION__, item);
 
+  printf("producing %s to buffer\n", item);
   memcpy (b->slot[b->in_marker].data, item, size);
   b->in_marker++;
   b->in_marker %= b->buff_size;
@@ -26,7 +27,6 @@ void produce (buffer_t *b, char *item, size_t size)
   pthread_cond_broadcast (&b->occupied_slot);
   
   pthread_mutex_unlock (&b->mutex);
-  
 }
 
 char *consume (buffer_t *b)
@@ -34,7 +34,7 @@ char *consume (buffer_t *b)
   char *item;
   
   pthread_mutex_lock (&b->mutex);
-  while (b->count <= 0)
+  if (b->count <= 0)
     pthread_cond_wait (&b->occupied_slot, &b->mutex);
   
   assert (b->count > 0);
@@ -42,6 +42,7 @@ char *consume (buffer_t *b)
   item = (char *) malloc (b->slot[b->out_marker].size);
 
   memcpy (item, b->slot[b->out_marker].data, b->slot[b->out_marker].size);
+  printf("consuming %s from buffer\n", item);
   free (b->slot[b->out_marker].data);
   b->out_marker++;
   b->out_marker %= b->buff_size;
@@ -52,5 +53,4 @@ char *consume (buffer_t *b)
   pthread_mutex_unlock (&b->mutex);
 
   return (item);
-
 }

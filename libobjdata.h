@@ -16,6 +16,9 @@
 #include <fcntl.h>
 #include <string.h>
 #include <stdint.h>
+#include <stdbool.h>
+#include <ctype.h>
+#define MAX_DATA_LENGTH 20
 
 typedef struct
 {
@@ -35,14 +38,29 @@ typedef struct
   slot_t slot[]; //array of slots
 } buffer_t;
 
+typedef struct
+{
+  int argn;
+  buffer_t *buff[];
+}thread_arg;
+
+typedef struct
+{
+  char name[MAX_DATA_LENGTH];
+  char value[MAX_DATA_LENGTH];
+}NameValuePair;
+
 #endif
 
-buffer_t *buff;
-pthread_t *thread_table;
-
-void *put_data (void *arg);
-
 void *get_data (void *arg);
+
+void *observe(void *arg);
+
+void addNameValuePair(int index, NameValuePair *pairs, char *name, char *value);
+
+void *reconstruct(void *arg);
+
+void *tapplot(void *arg);
 
 void produce (buffer_t *b, char *item, size_t size);
 
