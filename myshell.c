@@ -7,8 +7,11 @@
 #include "execute.h"
 
 
-int main() {
+int main(int argc, char *argv[]) {
 
+    if(argc>1){
+        freopen(argv[1], "r", stdin);
+    }
     signal(SIGINT, sigint_handler);
     signal(SIGCHLD, sigchld_handler);
 
