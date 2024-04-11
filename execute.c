@@ -220,7 +220,7 @@ void execute_separated_commands(char* cmdline) {
 
             if (current->background) {
                 printf("Background task running... pid: %d, Command: %s\n", pid, current->argv[0]);
-                usleep(50000);
+                usleep(5000);
             }
 
             else {
