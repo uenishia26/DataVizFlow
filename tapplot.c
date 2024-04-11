@@ -28,19 +28,23 @@ typedef struct
 {
     NameValuePair sample[MAX_PAIRS_PER_SAMPLE]; 
     int numOfNameValuePair; 
-}sampleData; 
+}sampleData;
+
+typedef enum {bit0=0, bit1=1} bit;
 
 
-//Struct for ringBuffer / necessary ringBuffer functions
-typedef struct 
+typedef struct
 {
+  bit latest;
+  bit reading;
+  bit slot[2];
   sem_t filledSlots;
-  sem_t emptySlots;    
-  int head; 
-  int tail; 
-  int bufferSize; 
-  char buffer[];  
-}ringBuffer; 
+  sem_t emptySlots;
+  int head;
+  int tail;
+  int bufferSize;
+  char buffer[];
+}ringBuffer;
 
 
 //Read from Process 2
@@ -52,6 +56,19 @@ char *readFromBuffer(ringBuffer *rb)
     rb->head = ((rb->head+1) % rb->bufferSize);  
     sem_post(&rb->emptySlots);  
     return source; 
+}
+
+char *bufread(ringBuffer *sb)
+{
+  bit pair, index;
+  pair = sb->latest;
+  sb->reading = pair;
+  index = sb->slot[pair];
+
+  char *item = (sb->buffer + 2*pair*MAX_SLOT_LENGTH + index*MAX_SLOT_LENGTH);
+  printf("Reading in PROCESS 2: %s\n", item);
+
+  return (item);
 }
 
 NameValuePair parseSampleDataStr(char *sampleData, int argn)
@@ -89,11 +106,22 @@ int main(int argc, char *argv[])
 {
     printf("In process 3\n"); 
     int p2P3shmid = atoi(argv[1]);   
-    int argn = atoi(argv[2]);   
+    int argn = atoi(argv[2]);
+    char *sync = argv[3];
     void *test = shmat(p2P3shmid, NULL, 0);  
     if(test == (void *)-1) 
        printf("There is an error with shmid"); 
-    ringBuffer *rbP2P3 = (ringBuffer *)test;
+    ringBuffer * sbP2P3;
+    ringBuffer * rbP2P3;
+
+    if (strcmp(sync, "async") == 0)
+      {
+         sbP2P3 = (ringBuffer *)test;
+      }
+    else
+      {
+        rbP2P3 = (ringBuffer *)test;
+      }
 
     //Create/Open the file in append mode 
     FILE *file = fopen("dataFile.txt", "w"); 
@@ -104,17 +132,31 @@ int main(int argc, char *argv[])
     }
 
     //Set up gnuplot by including one data input so gnuplot can determine a range 
-    NameValuePair tempNVP; 
-    tempNVP = parseSampleDataStr(readFromBuffer(rbP2P3), argn);
+    NameValuePair tempNVP;
+      if (strcmp(sync, "async") == 0)
+      {
+         tempNVP = parseSampleDataStr(bufread(sbP2P3), argn);
+      }
+    else
+      {
+        tempNVP = parseSampleDataStr(readFromBuffer(rbP2P3), argn);
+      }
     fprintf(file, "%d %s\n", 1, tempNVP.value); 
     fflush(file); 
-    system("gnuplot 'live_plot.gp' &"); //Allows for gnuplot to run in the background 
+    //system("gnuplot 'live_plot.gp' &"); //Allows for gnuplot to run in the background 
 
     int x = 1;  //This is sampleNumber 
     while(true)
     {
         NameValuePair tempNVP; 
-        tempNVP = parseSampleDataStr(readFromBuffer(rbP2P3), argn); 
+        if (strcmp(sync, "async") == 0)
+	  {
+	    tempNVP = parseSampleDataStr(bufread(sbP2P3), argn);
+	  }
+	else
+	  {
+	    tempNVP = parseSampleDataStr(readFromBuffer(rbP2P3), argn);
+	  } 
 
         //Exit the loop as soon as we reach a EOF signal 
         if(strcmp(tempNVP.name, "EOF") == 0)

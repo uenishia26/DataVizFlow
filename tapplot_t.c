@@ -46,8 +46,7 @@ NameValuePair parseSampleDataStr(char *sampleData, int argn)
 void *tapplot(void *arg)
 {
   printf("In process 3\n");
-  thread_arg *targ = (thread_arg *) arg;
-  int argn = targ->argn;
+  thread_arg *targ = (thread_arg *) arg; //get the arguments sent to thread
 
   //Create/Open the file in append mode 
   FILE *file = fopen("dataFile.txt", "w"); 
@@ -58,26 +57,44 @@ void *tapplot(void *arg)
   }
 
   //Set up gnuplot by including one data input so gnuplot can determine a range 
-  NameValuePair tempNVP; 
-  tempNVP = parseSampleDataStr(consume (targ->buff[1]), argn);
-  fprintf(file, "%d %s\n", 1, tempNVP.value); 
-  fflush(file); 
-  //system("gnuplot 'live_plot.gp' &"); //Allows for gnuplot to run in the background 
+  NameValuePair tempNVP;
+  if (targ->is_sync == 0)
+  {
+    tempNVP = parseSampleDataStr(consume (targ->buff[1]), targ->argn);
+  }
+  else if (targ->is_sync == 1)
+  {
+    tempNVP = parseSampleDataStr(slotread (targ->buff[1]), targ->argn);
+  }
+  fprintf(file, "%d %s\n", 1, tempNVP.value);
+  fflush(file);
+  system("gnuplot 'live_plot.gp' &"); //Allows for gnuplot to run in the background 
 
-  int x = 1;  //This is sampleNumber 
+  int x = 0;  //This is sampleNumber 
   while(true)
   {
-    NameValuePair tempNVP; 
-    tempNVP = parseSampleDataStr(consume (targ->buff[1]), argn); 
+    NameValuePair tempNVP;
+    if (targ->is_sync == 0)
+    {
+      tempNVP = parseSampleDataStr(consume (targ->buff[1]), targ->argn);
+    }
+    else if (targ->is_sync == 1)
+    {
+      tempNVP = parseSampleDataStr(slotread (targ->buff[1]), targ->argn);
+    } 
+
+    if (strcmp(tempNVP.name, "") != 0)
+    {
+      //Exit the loop as soon as we reach a EOF signal 
+      if(strcmp(tempNVP.name, "EOF") == 0)
+	break;
     
-    //Exit the loop as soon as we reach a EOF signal 
-    if(strcmp(tempNVP.name, "EOF") == 0)
-      break;
-    
-    fprintf(file, "%d %s\n", x+1, tempNVP.value); 
-    fflush(file);  
-    sleep(1); 
-    x++;  
+      fprintf(file, "%d %s\n", x+1, tempNVP.value); 
+      fflush(file);   
+      x++;
+    }
+    //for (int j = 0; j < 1E8; j++); /* Add some delay. */
+    //sched_yield ();/* Allow another thread to run. */
   }
   
   fclose(file);

@@ -8,18 +8,32 @@
 #include <string.h> //For string compare
 #include <sys/wait.h>
 #include <ctype.h> //For is digit 
-#define MAX_SLOT_LENGTH 1000//Max lenght of each slot of the buffer 
+#define MAX_SLOT_LENGTH 1000//Max lenght of each slot of the buffer
 
+char *typeBuffer;
+typedef enum {bit0=0, bit1=1} bit;
 
 typedef struct 
 {
+  bit latest;
+  bit reading;
+  bit slot[2];
   sem_t filledSlots;
   sem_t emptySlots;    
   int head; 
   int tail; 
   int bufferSize; 
   char buffer[];  
-}ringBuffer; 
+}ringBuffer;
+
+//initalizing slot buffer
+void initalizeSlotBuff(ringBuffer *sb)
+{
+  sb->latest = 0;
+  sb->reading = 0;
+  sb->slot[0] = 0;
+  sb->slot[1] = 0;
+}
 
 void initalizeRingBuff(ringBuffer *rb, int size)
 {
@@ -33,7 +47,7 @@ void initalizeRingBuff(ringBuffer *rb, int size)
 
 size_t getTotalSize(int bufferSize)
 {
-    size_t totalSize = (MAX_SLOT_LENGTH * bufferSize) + sizeof(ringBuffer); 
+  size_t totalSize = (MAX_SLOT_LENGTH * bufferSize) + sizeof(ringBuffer);
     return (totalSize); 
 }
 
@@ -86,7 +100,6 @@ int main(int argc, char *argv[])
     
     int options; 
     int numSlots = 1;//Default is 1 slot unless changed 
-    char *typeBuffer; 
     char *programList [1000]; 
     int programIndex = 0; 
     int shmid; 
@@ -133,16 +146,31 @@ int main(int argc, char *argv[])
     printf("Buffer type %s\n", typeBuffer);
     printf("size %d\n", numSlots); 
     
-    
-    int p1p2memoryID = getMemoryId(numSlots); 
-    int p2p3memoryID = getMemoryId(numSlots); 
-
-
-    ringBuffer *rb= (ringBuffer *)createSharedMemory(p1p2memoryID); 
-    ringBuffer *rb2 = (ringBuffer *)createSharedMemory(p2p3memoryID); 
-
-    initalizeRingBuff(rb,numSlots); 
-    initalizeRingBuff(rb2, numSlots); 
+    //Initalization depending on async or sync
+    int p1p2memoryID; 
+    int p2p3memoryID;
+    ringBuffer *rb;
+    ringBuffer *rb2;
+    ringBuffer *sb;
+    ringBuffer *sb2;
+    if (strcmp(typeBuffer, "async") == 0)
+    {
+      p1p2memoryID = getMemoryId(4);
+      p2p3memoryID = getMemoryId(4);
+      sb= (ringBuffer *)createSharedMemory(p1p2memoryID);
+      sb2 = (ringBuffer *)createSharedMemory(p2p3memoryID);
+      initalizeSlotBuff(sb);
+      initalizeSlotBuff(sb2);
+    }
+    else
+    {
+      p1p2memoryID = getMemoryId(numSlots);
+      p2p3memoryID = getMemoryId(numSlots);
+      rb= (ringBuffer *)createSharedMemory(p1p2memoryID);
+      rb2 = (ringBuffer *)createSharedMemory(p2p3memoryID);
+      initalizeRingBuff(rb,numSlots);
+      initalizeRingBuff(rb2, numSlots);
+    }
 
     //Convert memoryID into STR to pass to P1
     char p1p2shmidStr[12]; 
@@ -153,7 +181,11 @@ int main(int argc, char *argv[])
 
     //convert argn to pass to P3
     char argnStr[12]; 
-    sprintf(argnStr, "%d", argn);     
+    sprintf(argnStr, "%d", argn);
+
+    //convert typeBuffer to pass to P1, P2, P3
+    char typeStr[12];
+    sprintf(typeStr, "%s", typeBuffer);
  
     //Creating the path names for running the child processes 
     char p1Path [50];
@@ -168,7 +200,7 @@ int main(int argc, char *argv[])
     int p1 = fork(); 
     if (p1 == 0)
     {
-        execl(p1Path, programList[0], p1p2shmidStr, NULL);
+      execl(p1Path, programList[0], p1p2shmidStr, typeStr, NULL);
         perror("execl P1 failed"); 
         exit(EXIT_FAILURE); 
     }
@@ -178,7 +210,7 @@ int main(int argc, char *argv[])
     int p2 = fork(); 
     if(p2 == 0)
     {
-        execl(p2Path, programList[1], p1p2shmidStr, p2p3shmidStr, NULL); 
+        execl(p2Path, programList[1], p1p2shmidStr, p2p3shmidStr, typeStr, NULL); 
         perror("execl P2 failed"); 
         exit(EXIT_FAILURE); 
     }
@@ -186,7 +218,7 @@ int main(int argc, char *argv[])
     int p3 = fork(); 
     if(p3 == 0)
     {
-        execl(p3Path, programList[2], p2p3shmidStr, argnStr, NULL); 
+        execl(p3Path, programList[2], p2p3shmidStr, argnStr, typeStr, NULL); 
     }
 
     //Waiting for the parent to exit 

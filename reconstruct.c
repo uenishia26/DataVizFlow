@@ -40,16 +40,21 @@ void addNameValuePair(int index, NameValuePair *pairs, char *name, char *value)
     pairs[index].name[strlen(name)] = '\0';
 }
 
+typedef enum {bit0=0, bit1=1} bit;
+
 //Struct for ringBuffer / necessary ringBuffer functions
-typedef struct 
+typedef struct
 {
+  bit latest;
+  bit reading;
+  bit slot[2];
   sem_t filledSlots;
-  sem_t emptySlots;    
-  int head; 
-  int tail; 
-  int bufferSize; 
-  char buffer[];  
-}ringBuffer; 
+  sem_t emptySlots;
+  int head;
+  int tail;
+  int bufferSize;
+  char buffer[];
+}ringBuffer;
 
 
 //Read from Process 1 
@@ -74,7 +79,30 @@ void writeToBuffer(ringBuffer *rb, char *str)
     sleep(1); 
 }
 
+void bufwrite(ringBuffer *sb, char *item)
+{
+  bit pair, index;
+  pair = !sb->reading;
+  index = !sb->slot[pair];
 
+  printf("producing %s to buffer\n", item);
+  strncpy(sb->buffer + 2*pair*MAX_SLOT_LENGTH + index*MAX_SLOT_LENGTH, item, MAX_SLOT_LENGTH);
+  sb->slot[pair] = index;
+  sb->latest = pair;
+  sleep(1);
+}
+
+char *bufread(ringBuffer *sb)
+{
+  bit pair, index;
+  pair = sb->latest;
+  sb->reading = pair;
+  index = sb->slot[pair];
+  char *item = (sb->buffer + 2*pair*MAX_SLOT_LENGTH + index*MAX_SLOT_LENGTH);
+  printf("Reading in PROCESS 2: %s\n", item);
+
+  return (item);
+}
 
 
 int main(int argc, char *argv[])
@@ -82,19 +110,40 @@ int main(int argc, char *argv[])
     printf("In process 2\n"); 
     //Receiving shmid for shared buffer + Creating ringBuffer
     int shmid = atoi(argv[1]);    
-    int p2p3Shmid = atoi(argv[2]); 
+    int p2p3Shmid = atoi(argv[2]);
+    char *sync = argv[3];
 
     //For memory between P1 & P2 ringBUffer called rb
     void *test = shmat(shmid, NULL, 0);  
     if(test == (void *)-1) 
        printf("There is an error with shmid"); 
-    ringBuffer * rb = (ringBuffer *)test;
+    ringBuffer * sb;
+    ringBuffer * rb;
+
+    if (strcmp(sync, "async") == 0)
+      {
+         sb = (ringBuffer *)test;
+      }
+    else
+      {
+        rb = (ringBuffer *)test;
+      }
 
     //For memory between P2 & P3 ringBuffer called rbP2P3
     void *test2 = shmat(p2p3Shmid, NULL, 0);
     if(test == (void *)-1) 
        printf("There is an error with shmid"); 
-    ringBuffer *rbP2P3 = (ringBuffer *)test2; 
+    ringBuffer * sbP2P3;
+    ringBuffer * rbP2P3;
+
+    if (strcmp(sync, "async") == 0)
+      {
+         sbP2P3 = (ringBuffer *)test2;
+      }
+    else
+      {
+        rbP2P3 = (ringBuffer *)test2;
+      }
 
 
     int currentSampleIndex = 0; 
@@ -124,7 +173,15 @@ int main(int argc, char *argv[])
     
     while(true)
     {
-        char *str = readFromBuffer(rb); 
+      char *str;
+      if (strcmp(sync, "async") == 0)
+      {
+         str = bufread(sb);
+      }
+    else
+      {
+        str = readFromBuffer(rb);
+      } 
         //Checking if we reached an EOF signal
         if(strcmp(str, "EOF")==0)
         {
@@ -222,13 +279,25 @@ int main(int argc, char *argv[])
             //Concatenate to the end of the sampleDataAsString structure 
             strncat(sampleDataAsString, nameValCombined, strlen(nameValCombined)); 
         }
-        //Writing to the P2P3 Buffer Slot 
-        printf("Hello"); 
-        writeToBuffer(rbP2P3, sampleDataAsString); 
+        //Writing to the P2P3 Buffer Slot  
+	if (strcmp(sync, "async") == 0)
+	  {
+	    bufwrite(sbP2P3, sampleDataAsString);
+	  }
+	else
+	  {
+	    writeToBuffer(rbP2P3, sampleDataAsString);
+	  }
     }
     //EOF ending signal 
-    writeToBuffer(rbP2P3, "EOF"); 
-
+     if (strcmp(sync, "async") == 0)
+          {
+            bufwrite(sbP2P3, "EOF");
+          }
+        else
+          {
+            writeToBuffer(rbP2P3, "EOF");
+          } 
 
     
 

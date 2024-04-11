@@ -66,11 +66,27 @@ void *observe(void *arg)
     //We remake the string 
     char nameValCombined [MAX_DATA_LENGTH*2]; //Cause its name and vale thus technically max can be 2 times 
     sprintf(nameValCombined, "%s=%s", pairs[x].name, pairs[x].value);
-    produce (targ->buff[0], nameValCombined, strlen(nameValCombined)+1);
+    if (targ->is_sync == 0)
+    {
+      produce (targ->buff[0], nameValCombined, strlen(nameValCombined)+1);
+    }
+    else if (targ->is_sync == 1)
+    {
+      slotwrite (targ->buff[0], nameValCombined, strlen(nameValCombined)+1);
+    }
+    //for (int j = 0; j < 1E8; j++); /* Add some delay. */
+    //sched_yield ();/* Allow another thread to run. */
   }
   
-  //This is to indicate termination 
-  produce (targ->buff[0], "EOF", strlen("EOF")+1);
+  //This is to indicate termination
+  if (targ->is_sync == 0)
+  {
+    produce (targ->buff[0], "EOF", strlen("EOF")+1);
+  }
+  else if (targ->is_sync == 1)
+  {
+    slotwrite (targ->buff[0], "EOF", strlen("EOF")+1);
+  }
   printf("Completed Process 1\n");
   pthread_exit(NULL);
 }

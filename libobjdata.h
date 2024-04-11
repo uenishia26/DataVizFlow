@@ -20,6 +20,8 @@
 #include <ctype.h>
 #define MAX_DATA_LENGTH 20
 
+typedef enum {bit0=0, bit1=1} bit;
+
 typedef struct
 {
   char *data; //buffer slot stored data
@@ -28,6 +30,10 @@ typedef struct
 
 typedef struct
 {
+  bit latest;
+  bit reading;
+  bit slots[2];
+  slot_t buffer[2][2];
   int buff_size; //size of buffer
   int count; //number of slots in the buffer
   int in_marker; //next slot to add data to
@@ -40,6 +46,7 @@ typedef struct
 
 typedef struct
 {
+  int is_sync;
   int argn;
   buffer_t *buff[];
 }thread_arg;
@@ -65,3 +72,7 @@ void *tapplot(void *arg);
 void produce (buffer_t *b, char *item, size_t size);
 
 char *consume (buffer_t *b);
+
+void slotwrite(buffer_t *b, char *item, size_t size);
+
+char *slotread (buffer_t *b);

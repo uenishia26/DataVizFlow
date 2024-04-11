@@ -28,16 +28,21 @@ void addNameValuePair(int index, NameValuePair *pairs, char *name, char *value)
     pairs[index].name[strlen(name)] = '\0';
 }
 
+typedef enum {bit0=0, bit1=1} bit;
+
 //Struct for ringBuffer / necessary ringBuffer functions
-typedef struct 
+typedef struct
 {
+  bit latest;
+  bit reading;
+  bit slot[2];
   sem_t filledSlots;
-  sem_t emptySlots;    
-  int head; 
-  int tail; 
-  int bufferSize; 
-  char buffer[];  
-}ringBuffer; 
+  sem_t emptySlots;
+  int head;
+  int tail;
+  int bufferSize;
+  char buffer[];
+}ringBuffer;
 
 //Write to Process 2
 void writeToBuffer(ringBuffer *rb, char *str)
@@ -50,20 +55,40 @@ void writeToBuffer(ringBuffer *rb, char *str)
     sleep(1); 
 }
 
+void bufwrite(ringBuffer *sb, char *item)
+{
+  bit pair, index;
+  pair = !sb->reading;
+  index = !sb->slot[pair];
 
-
-
+  printf("producing %s to buffer\n", item);
+  strncpy(sb->buffer + 2*pair*MAX_SLOT_LENGTH + index*MAX_SLOT_LENGTH, item, MAX_SLOT_LENGTH);
+  sb->slot[pair] = index;
+  sb->latest = pair;
+  sleep(1);
+}
 
 
 int main(int argc, char *argv[])
-{   
+{
+  printf("In Process 1\n");
     //Receiving shmid for shared buffer + Creating ringBuffer
-    int shmid = atoi(argv[1]);     
+  int shmid = atoi(argv[1]);
+  char *sync = argv[2];
     void *test = shmat(shmid, NULL, 0);  
     if(test == (void *)-1) 
-       printf("There is an error with shmid"); 
-    ringBuffer * rb = (ringBuffer *)test;
+       printf("There is an error with shmid");
+    ringBuffer * sb;
+    ringBuffer * rb;
 
+    if (strcmp(sync, "async") == 0)
+      {
+	 sb = (ringBuffer *)test;
+      }
+    else
+      {
+	rb = (ringBuffer *)test;
+      }
 
 
 
@@ -112,7 +137,6 @@ int main(int argc, char *argv[])
             numOfUniqueNames++;
             index++;
         }  
-   
     }
 
 
@@ -123,12 +147,26 @@ int main(int argc, char *argv[])
     {
         //We remake the string 
         char nameValCombined [MAX_DATA_LENGTH*2]; //Cause its name and vale thus technically max can be 2 times 
-        sprintf(nameValCombined, "%s=%s", pairs[x].name, pairs[x].value); 
-        writeToBuffer(rb, nameValCombined); 
+        sprintf(nameValCombined, "%s=%s", pairs[x].name, pairs[x].value);
+	if (strcmp(sync, "async") == 0)
+	  {
+	    bufwrite(sb, nameValCombined);
+	  }
+	else
+	  {
+	    writeToBuffer(rb, nameValCombined);
+	  } 
     }
 
     //This is to indicate termination 
-    writeToBuffer(rb, "EOF");
+    if (strcmp(sync, "async") == 0)
+      {
+	bufwrite(sb, "EOF");
+      }
+    else
+      {
+	writeToBuffer(rb, "EOF");
+      }
    
     return 0;
 }
