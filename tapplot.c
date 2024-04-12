@@ -53,9 +53,10 @@ char *readFromBuffer(ringBuffer *rb)
 {    
     sem_wait(&rb->filledSlots); 
     char *source = (char *)(rb->buffer + rb->head*MAX_SLOT_LENGTH); 
-    printf("Reading: %s\n", source); 
+    //printf("Reading: %s\n", source); 
     rb->head = ((rb->head+1) % rb->bufferSize);  
-    sem_post(&rb->emptySlots);  
+    sem_post(&rb->emptySlots);
+    //sleep(1);
     return source; 
 }
 
@@ -66,8 +67,8 @@ char *bufread(ringBuffer *sb)
   sb->reading = pair;
   index = sb->slot[pair];
   char *item = (sb->buffer + 2*pair*MAX_SLOT_LENGTH + index*MAX_SLOT_LENGTH);
-  printf("Reading in PROCESS 3: %s\n", item);
-  printf("Index: %d, Value: %s\n", 2*pair*MAX_SLOT_LENGTH + index*MAX_SLOT_LENGTH, item);
+  //printf("Reading in PROCESS 3: %s\n", item);
+  //printf("Index: %d, Value: %s\n", 2*pair*MAX_SLOT_LENGTH + index*MAX_SLOT_LENGTH, item);
   sleep(1);
   return (item);
 }
@@ -111,7 +112,7 @@ NameValuePair parseSampleDataStr(char *sampleData, int argn)
 
 int main(int argc, char *argv[])
 {
-    printf("In process 3\n"); 
+  //printf("In process 3\n"); 
     int p2P3shmid = atoi(argv[1]);   
     int argn = atoi(argv[2]);
     char *sync = argv[3];
@@ -159,7 +160,8 @@ int main(int argc, char *argv[])
 	  tempNVP = parseSampleDataStr(readFromBuffer(rbP2P3), argn);
 	}
     }
-    fprintf(file, "%d %s\n", 1, tempNVP.value); 
+    fprintf(file, "%d %s\n", 1, tempNVP.value);
+    printf("%d %s\n", 1, tempNVP.value);
     fflush(file); 
     //system("gnuplot 'live_plot.gp' &"); //Allows for gnuplot to run in the background 
 
@@ -180,7 +182,8 @@ int main(int argc, char *argv[])
 	if(strcmp(tempNVP.name, "EOF") == 0)
 	  break; 
         
-	fprintf(file, "%d %s\n", x+1, tempNVP.value); 
+	fprintf(file, "%d %s\n", x+1, tempNVP.value);
+	printf("%d %s\n", x+1, tempNVP.value);
 	fflush(file);   
 	x++;
     }

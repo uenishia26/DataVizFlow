@@ -82,7 +82,7 @@ void writeToBuffer(ringBuffer *rb, char *valString)
 void readFromBuffer(ringBuffer *rb)
 {
     sem_wait(&rb->filledSlots); 
-    printf("%s\n", rb->buffer + rb->head*MAX_SLOT_LENGTH); 
+    //printf("%s\n", rb->buffer + rb->head*MAX_SLOT_LENGTH); 
     rb->head = ((rb->head+1) % rb->bufferSize); 
     sem_post(&rb->emptySlots); 
 }
@@ -142,9 +142,9 @@ int main(int argc, char *argv[])
         }
     }  
 
-    printf("argn %d\n", argn); 
-    printf("Buffer type %s\n", typeBuffer);
-    printf("size %d\n", numSlots); 
+    //printf("argn %d\n", argn); 
+    //printf("Buffer type %s\n", typeBuffer);
+    //printf("size %d\n", numSlots); 
     
     //Initalization depending on async or sync
     int p1p2memoryID; 
@@ -175,7 +175,7 @@ int main(int argc, char *argv[])
     //Convert memoryID into STR to pass to P1
     char p1p2shmidStr[12]; 
     sprintf(p1p2shmidStr, "%d", p1p2memoryID);
-    printf("ID1: %s", p1p2shmidStr); 
+    //printf("ID1: %s", p1p2shmidStr); 
 
     char p2p3shmidStr[12]; 
     sprintf(p2p3shmidStr, "%d", p2p3memoryID); 
@@ -231,7 +231,7 @@ int main(int argc, char *argv[])
       waitpid(p3, NULL, 0); 
     
 
-    printf("Program has finished executing: Removing shared memory segements...\n"); 
+    //printf("Program has finished executing: Removing shared memory segements...\n"); 
     shmctl(p1p2memoryID, IPC_RMID, NULL); 
     shmctl(p2p3memoryID, IPC_RMID, NULL); 
 

@@ -51,8 +51,8 @@ void writeToBuffer(ringBuffer *rb, char *str)
     strncpy(rb->buffer + rb->tail*MAX_SLOT_LENGTH, str, MAX_SLOT_LENGTH);  
     rb->tail = (rb->tail+1) % rb->bufferSize; 
     sem_post(&rb->filledSlots); 
-    printf("Writting In Process 1: %s \n", str);
-    sleep(1); 
+    //printf("Writting In Process 1: %s \n", str);
+    //sleep(1); 
 }
 
 void bufwrite(ringBuffer *sb, char *item)
@@ -61,9 +61,9 @@ void bufwrite(ringBuffer *sb, char *item)
   pair = !sb->reading;
   index = !sb->slot[pair];
 
-  printf("Writing Process 1: %s\n", item);
+  //printf("Writing Process 1: %s\n", item);
   strncpy(sb->buffer + 2*pair*MAX_SLOT_LENGTH + index*MAX_SLOT_LENGTH, item, MAX_SLOT_LENGTH);
-  printf("Index: %d, Value: %s\n", 2*pair*MAX_SLOT_LENGTH + index*MAX_SLOT_LENGTH, sb->buffer + 2*pair*MAX_SLOT_LENGTH + index*MAX_SLOT_LENGTH);
+  //printf("Index: %d, Value: %s\n", 2*pair*MAX_SLOT_LENGTH + index*MAX_SLOT_LENGTH, sb->buffer + 2*pair*MAX_SLOT_LENGTH + index*MAX_SLOT_LENGTH);
   sb->slot[pair] = index;
   sb->latest = pair;
   sleep(1);
@@ -72,7 +72,7 @@ void bufwrite(ringBuffer *sb, char *item)
 
 int main(int argc, char *argv[])
 {
-  printf("In Process 1\n");
+  //printf("In Process 1\n");
     //Receiving shmid for shared buffer + Creating ringBuffer
   int shmid = atoi(argv[1]);
   char *sync = argv[2];
@@ -102,10 +102,10 @@ int main(int argc, char *argv[])
     bool setDetermined = false;
     int x;
 
-    FILE *file = fopen("testFile", "r"); 
+    //FILE *file = fopen("testFile", "r"); 
+    
 
-
-    while(fgets(line, sizeof(line), file))
+    while(fgets(line, sizeof(line), stdin))
     {
         char *name = strtok(line, "=");
         char *value = strtok(NULL, "\n"); //Null = contine searching the same string

@@ -63,7 +63,7 @@ char *readFromBuffer(ringBuffer *rb)
 {    
     sem_wait(&rb->filledSlots); 
     char *source = (rb->buffer + rb->head*MAX_SLOT_LENGTH); 
-    printf("Reading in PROCESS 2: %s\n", source); 
+    // printf("Reading in PROCESS 2: %s\n", source); 
     rb->head = ((rb->head+1) % rb->bufferSize);  
     sem_post(&rb->emptySlots);   
     return source; 
@@ -73,7 +73,7 @@ char *readFromBuffer(ringBuffer *rb)
 void writeToBuffer(ringBuffer *rb, char *str)
 { 
     sem_wait(&rb->emptySlots);  
-    printf("Writting to Process 3: %s\n", str); 
+    //printf("Writting to Process 3: %s\n", str); 
     strncpy(rb->buffer + rb->tail*MAX_SLOT_LENGTH, str, MAX_SLOT_LENGTH);  
     rb->tail = (rb->tail+1) % rb->bufferSize; 
     sem_post(&rb->filledSlots);
@@ -86,7 +86,7 @@ void bufwrite(ringBuffer *sb, char *item)
   pair = !sb->reading;
   index = !sb->slot[pair];
 
-  printf("producing %s to buffer\n", item);
+  //printf("producing %s to buffer\n", item);
   strncpy(sb->buffer + 2*pair*MAX_SLOT_LENGTH + index*MAX_SLOT_LENGTH, item, MAX_SLOT_LENGTH);
   sb->slot[pair] = index;
   sb->latest = pair;
@@ -103,8 +103,8 @@ char *bufread(ringBuffer *sb)
   if (prev != 2*pair*MAX_SLOT_LENGTH + index*MAX_SLOT_LENGTH)
     {
       item = (sb->buffer + 2*pair*MAX_SLOT_LENGTH + index*MAX_SLOT_LENGTH);
-      printf("Reading in PROCESS 2: %s\n", item);
-      printf("Index: %d, Value: %s\n", 2*pair*MAX_SLOT_LENGTH + index*MAX_SLOT_LENGTH, item);
+      //printf("Reading in PROCESS 2: %s\n", item);
+      //printf("Index: %d, Value: %s\n", 2*pair*MAX_SLOT_LENGTH + index*MAX_SLOT_LENGTH, item);
       prev = 2*pair*MAX_SLOT_LENGTH + index*MAX_SLOT_LENGTH;
     }
   sleep(1);
@@ -114,7 +114,7 @@ char *bufread(ringBuffer *sb)
 
 int main(int argc, char *argv[])
 {
-    printf("In process 2\n"); 
+  //printf("In process 2\n"); 
     //Receiving shmid for shared buffer + Creating ringBuffer
     int shmid = atoi(argv[1]);
     int p2p3Shmid = atoi(argv[2]);
