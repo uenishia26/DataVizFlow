@@ -21,6 +21,7 @@ void init_slot(buffer_t *b)
   b->reading = 0;
   b->slots[0] = 0;
   b->slots[1] = 0;
+  b->prev = 5;
 }
 
 void free_buffer (buffer_t *b)
@@ -63,6 +64,7 @@ int main(int argc, char *argv[])
       if (strspn(argv[index], "0123456789"))
       {
 	argn = atoi(argv[index]);
+	//printf("argn: %d\n", argn);
       }
       else
       {
@@ -88,6 +90,27 @@ int main(int argc, char *argv[])
 	break; 
     }
   }
+  
+  //prepare thread attributes
+  if (pthread_attr_setschedpolicy(&tattr, SCHED_RR)) //Set the scheduling policy to red robin
+  {
+    fprintf (stderr, "Cannot set thread scheduling policy!\n");
+    exit (1);
+  }
+
+  tp.sched_priority = 50;
+  if (pthread_attr_setschedparam(&tattr,  &tp)) //set priority between 0 and 99
+  {
+    fprintf (stderr, "Cannot set thread scheduling priority!\n");
+    exit (1);
+  }
+
+  if (pthread_attr_setscope(&tattr, PTHREAD_SCOPE_SYSTEM)) //Now set the thread scope to be system-wide
+  {
+    fprintf (stderr, "Cannot set thread execution scope!\n");
+    exit (1);
+  }
+    
   pthread_t *thread_table;
 
   thread_table = (pthread_t*)malloc((funcIndex) * sizeof(pthread_t));
@@ -97,11 +120,13 @@ int main(int argc, char *argv[])
     exit (1);
   }
 
+  thread_arg *arg = (thread_arg*)malloc(sizeof(thread_arg)  + (sizeof(buffer_t*) * funcIndex-1));
+
   if (strcmp(typeBuffer,"async") == 0)
   {
-    thread_arg *arg = (thread_arg*)malloc(sizeof(thread_arg)  + (sizeof(buffer_t*) * funcIndex-1));
     arg->argn = argn;
     arg->is_sync = 1;
+    //printf("arg->argn: %d\n", arg->argn);
     
     for (int i = 0; i < funcIndex-1; i++)
     {
@@ -115,6 +140,7 @@ int main(int argc, char *argv[])
       const char* error_msg;
       func = dlsym(lib_handle, funcList[i]);
       error_msg = dlerror();
+      //printf("%s\n", funcList[i]);
       if (error_msg)
       {
 	dlerror();
@@ -137,9 +163,9 @@ int main(int argc, char *argv[])
   }
   else
   {
-    thread_arg *arg = (thread_arg*)malloc(sizeof(thread_arg) + (sizeof(buffer_t*) * funcIndex-1));
     arg->argn = argn;
     arg->is_sync = 0;
+    //printf("arg->argn: %d\n", arg->argn); 
 
     for (int i = 0; i < funcIndex-1; i++)
     {
@@ -152,26 +178,6 @@ int main(int argc, char *argv[])
       }
       arg->buff[i]->buff_size = size;
       init_buffer(arg->buff[i]);
-    }
-
-    //prepare thread attributes
-    if (pthread_attr_setschedpolicy(&tattr, SCHED_RR)) //Set the scheduling policy to red robin
-      {
-        fprintf (stderr, "Cannot set thread scheduling policy!\n");
-        exit (1);
-      }
-
-    tp.sched_priority = 50;
-    if (pthread_attr_setschedparam(&tattr,  &tp)) //set priority between 0 and 99
-    {
-      fprintf (stderr, "Cannot set thread scheduling priority!\n");
-      exit (1);
-    }
-
-    if (pthread_attr_setscope(&tattr, PTHREAD_SCOPE_SYSTEM)) //Now set the thread scope to be system-wide
-    {
-      fprintf (stderr, "Cannot set thread execution scope!\n");
-      exit (1);
     }
 
     for (int i = 0; i < funcIndex; i++)

@@ -19,6 +19,12 @@ NameValuePair parseSampleDataStr(char *sampleData, int argn)
     strncpy(eofCheck.name, "EOF", MAX_DATA_LENGTH); 
     return eofCheck; 
   }
+
+  if(strcmp(sampleData, "")==0)
+  {
+    strncpy(eofCheck.name, "", MAX_DATA_LENGTH);
+    return eofCheck;
+  }
   
   int whichNameValuePair = 1; 
   char *subString; 
@@ -45,8 +51,10 @@ NameValuePair parseSampleDataStr(char *sampleData, int argn)
 
 void *tapplot(void *arg)
 {
-  printf("In process 3\n");
+  //printf("In process 3\n");
   thread_arg *targ = (thread_arg *) arg; //get the arguments sent to thread
+  int argn = targ->argn;
+  char *perv_val;
 
   //Create/Open the file in append mode 
   FILE *file = fopen("dataFile.txt", "w"); 
@@ -56,21 +64,9 @@ void *tapplot(void *arg)
     exit(1); 
   }
 
-  //Set up gnuplot by including one data input so gnuplot can determine a range 
-  NameValuePair tempNVP;
-  if (targ->is_sync == 0)
-  {
-    tempNVP = parseSampleDataStr(consume (targ->buff[1]), targ->argn);
-  }
-  else if (targ->is_sync == 1)
-  {
-    tempNVP = parseSampleDataStr(slotread (targ->buff[1]), targ->argn);
-  }
-  fprintf(file, "%d %s\n", 1, tempNVP.value);
-  fflush(file);
-  system("gnuplot 'live_plot.gp' &"); //Allows for gnuplot to run in the background 
+  //Set up gnuplot by including one data input so gnuplot can determine a range  
 
-  int x = 0;  //This is sampleNumber 
+  int x = 1;  //This is sampleNumber 
   while(true)
   {
     NameValuePair tempNVP;
@@ -81,23 +77,27 @@ void *tapplot(void *arg)
     else if (targ->is_sync == 1)
     {
       tempNVP = parseSampleDataStr(slotread (targ->buff[1]), targ->argn);
-    } 
+    }
+    //printf("value: %s\n", tempNVP.value);
 
     if (strcmp(tempNVP.name, "") != 0)
     {
-      //Exit the loop as soon as we reach a EOF signal 
+      //Exit the loop as soon as we reach a EOF signal
       if(strcmp(tempNVP.name, "EOF") == 0)
-	break;
-    
-      fprintf(file, "%d %s\n", x+1, tempNVP.value); 
-      fflush(file);   
+        break;
+      
+      fprintf(file, "%d %s\n", x, tempNVP.value);
+      printf("%d %s\n", x, tempNVP.value);
+      fflush(file);
+      if (x == 1)
+      {
+	system("gnuplot 'live_plot.gp' &"); //Allows for gnuplot to run in the background
+      }
       x++;
     }
-    //for (int j = 0; j < 1E8; j++); /* Add some delay. */
-    //sched_yield ();/* Allow another thread to run. */
   }
   
   fclose(file);
-  printf("Completed Process 3\n");
+  //printf("Completed Process 3\n");
   pthread_exit(NULL);
 }

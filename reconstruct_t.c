@@ -13,7 +13,7 @@ typedef struct
 
 void *reconstruct(void *arg)
 {
-  printf("In process 2\n");   
+  //printf("In process 2\n");   
 
   thread_arg *targ = (thread_arg *) arg; //get the arguments sent to thread
   int currentSampleIndex = 0; 
@@ -117,8 +117,6 @@ void *reconstruct(void *arg)
 	}
       }
     }
-    //for (int j = 0; j < 1E8; j++); /* Add some delay. */
-    //sched_yield ();		     /* Allow another thread to run. */
   }
   
   //Creating a string that repersents each SampleData
@@ -149,8 +147,6 @@ void *reconstruct(void *arg)
     {
       slotwrite (targ->buff[1], sampleDataAsString, strlen(sampleDataAsString)+1);
     }
-    //for (int j = 0; j < 1E8; j++); /* Add some delay. */
-    //sched_yield ();		     /* Allow another thread to run. */
   }
   //EOF ending signal 
   if (targ->is_sync == 0)
@@ -161,6 +157,6 @@ void *reconstruct(void *arg)
   {
     slotwrite (targ->buff[1], "EOF", strlen("EOF")+1);
   }
-  printf("Complete Process 2\n");
+  //printf("Complete Process 2\n");
   pthread_exit(NULL);
 }

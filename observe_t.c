@@ -22,10 +22,10 @@ void *observe(void *arg)
   bool setDetermined = false;
   int x;
   
-  FILE *file = fopen("testFile", "r"); 
+  //FILE *file = fopen("testFile", "r"); 
 
   
-  while(fgets(line, sizeof(line), file))
+  while(fgets(line, sizeof(line), stdin))
   {
     char *name = strtok(line, "=");
     char *value = strtok(NULL, "\n"); //Null = contine searching the same string
@@ -74,8 +74,6 @@ void *observe(void *arg)
     {
       slotwrite (targ->buff[0], nameValCombined, strlen(nameValCombined)+1);
     }
-    //for (int j = 0; j < 1E8; j++); /* Add some delay. */
-    //sched_yield ();/* Allow another thread to run. */
   }
   
   //This is to indicate termination
@@ -87,6 +85,6 @@ void *observe(void *arg)
   {
     slotwrite (targ->buff[0], "EOF", strlen("EOF")+1);
   }
-  printf("Completed Process 1\n");
+  //printf("Completed Process 1\n");
   pthread_exit(NULL);
 }

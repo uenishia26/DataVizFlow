@@ -33,6 +33,7 @@ typedef struct
   bit latest;
   bit reading;
   bit slots[2];
+  int prev;
   slot_t buffer[2][2];
   int buff_size; //size of buffer
   int count; //number of slots in the buffer
