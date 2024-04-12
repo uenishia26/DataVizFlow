@@ -1,0 +1,2 @@
+myshell:
+Similarly to all executables in this project, run "make" in the terminal to create the myshell executable. To run, input ./myshell <filename> into the terminal. If filename is empty, it will print "myshell>" and from there the user will input commands.
