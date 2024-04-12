@@ -11,6 +11,10 @@
 /* Function to execute user commands */
 void execute(Command *command)  {
     char **argv = command->argv;
+    char executable_path[512];
+    char tapper_path[512];
+    char tappet_path[512];
+    char* last_slash;
     int out = 0; // Output redirection flag
     int err = 0; // Error redirection flag
     int in = 0;  // Input redirection flag
@@ -19,6 +23,10 @@ void execute(Command *command)  {
     char *err_file = NULL; // Output file for error
     char *in_file = NULL; // Input file name if any
     char *both_file = NULL; // Both stout and stdin go here if directed
+
+    readlink("/proc/self/exe", executable_path, sizeof(executable_path));
+    strcpy(tapper_path, executable_path);
+    strcpy(tappet_path, executable_path);
 
     // Check if the command contains '>' for redirection or '1>' for standard output redirection
     for (int i = 0; argv[i] != NULL; i++) {
@@ -82,6 +90,24 @@ void execute(Command *command)  {
             file_descriptor = open(in_file, O_RDONLY);
             dup2(file_descriptor, STDIN_FILENO);
             close(file_descriptor);
+        }
+
+        if (strcmp(argv[0], "tapper") == 0) {
+            last_slash = strrchr(tapper_path, '/');
+            if (last_slash != NULL) {
+                *(last_slash + 1) = '\0';   // trim path after last "/"
+            }
+            strcat(tapper_path, "tapper");
+            argv[0] = tapper_path;
+        }
+
+        if (strcmp(argv[0], "tappet") == 0) {
+            last_slash = strrchr(tappet_path, '/');
+            if (last_slash != NULL) {
+                *(last_slash + 1) = '\0';   // trim path after last "/"
+            }
+            strcat(tappet_path, "tappet");
+            argv[0] = tappet_path;
         }
 
         if (execvp(argv[0], argv) < 0) {
