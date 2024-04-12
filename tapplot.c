@@ -69,7 +69,7 @@ char *bufread(ringBuffer *sb)
   char *item = (sb->buffer + 2*pair*MAX_SLOT_LENGTH + index*MAX_SLOT_LENGTH);
   //printf("Reading in PROCESS 3: %s\n", item);
   //printf("Index: %d, Value: %s\n", 2*pair*MAX_SLOT_LENGTH + index*MAX_SLOT_LENGTH, item);
-  sleep(1);
+  usleep(100000);
   return (item);
 }
 
@@ -139,32 +139,6 @@ int main(int argc, char *argv[])
         return 1; 
     }
 
-    //Set up gnuplot by including one data input so gnuplot can determine a range 
-    NameValuePair tempNVP;
-    if (strcmp(sync, "async") == 0)
-        {
-          tempNVP = parseSampleDataStr(bufread(sbP2P3), argn);
-        }
-      else
-        {
-          tempNVP = parseSampleDataStr(readFromBuffer(rbP2P3), argn);
-        }
-    while (strcmp(tempNVP.name, "")==0)
-    {
-      if (strcmp(sync, "async") == 0)
-	{
-	  tempNVP = parseSampleDataStr(bufread(sbP2P3), argn);
-	}
-      else
-	{
-	  tempNVP = parseSampleDataStr(readFromBuffer(rbP2P3), argn);
-	}
-    }
-    fprintf(file, "%d %s\n", 1, tempNVP.value);
-    printf("%d %s\n", 1, tempNVP.value);
-    fflush(file); 
-    //system("gnuplot 'live_plot.gp' &"); //Allows for gnuplot to run in the background 
-
     int x = 1;  //This is sampleNumber 
     while(true)
     {
@@ -177,15 +151,22 @@ int main(int argc, char *argv[])
 	  {
 	      tempNVP = parseSampleDataStr(readFromBuffer(rbP2P3), argn);
 	  }
-	
-	//Exit the loop as soon as we reach a EOF signal 
-	if(strcmp(tempNVP.name, "EOF") == 0)
-	  break; 
+
+	if (strcmp(tempNVP.name, "")!=0)
+	{
+	  //Exit the loop as soon as we reach a EOF signal 
+	  if(strcmp(tempNVP.name, "EOF") == 0)
+	    break; 
         
-	fprintf(file, "%d %s\n", x+1, tempNVP.value);
-	printf("%d %s\n", x+1, tempNVP.value);
-	fflush(file);   
-	x++;
+	  fprintf(file, "%d %s\n", x, tempNVP.value);
+	  printf("%d %s\n", x, tempNVP.value);
+	  fflush(file);
+	  if (x==1)
+	  {
+	    //system("gnuplot 'live_plot.gp' &"); //Allows for gnuplot to run in the background
+	  }
+	  x++;
+	}
     }
  
     fclose(file); 
