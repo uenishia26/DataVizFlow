@@ -87,12 +87,12 @@ void *tapplot(void *arg)
         break;
       
       fprintf(file, "%d %s\n", x, tempNVP.value);
-      printf("%d %s\n", x, tempNVP.value);
       fflush(file);
       if (x == 1)
       {
 	system("gnuplot 'live_plot.gp' &"); //Allows for gnuplot to run in the background
       }
+      printf("%d %s\n", x, tempNVP.value);
       x++;
     }
   }
