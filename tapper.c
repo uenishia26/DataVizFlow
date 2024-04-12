@@ -174,7 +174,8 @@ int main(int argc, char *argv[])
 
     //Convert memoryID into STR to pass to P1
     char p1p2shmidStr[12]; 
-    sprintf(p1p2shmidStr, "%d", p1p2memoryID); 
+    sprintf(p1p2shmidStr, "%d", p1p2memoryID);
+    printf("ID1: %s", p1p2shmidStr); 
 
     char p2p3shmidStr[12]; 
     sprintf(p2p3shmidStr, "%d", p2p3memoryID); 
@@ -210,24 +211,24 @@ int main(int argc, char *argv[])
     int p2 = fork(); 
     if(p2 == 0)
     {
-        execl(p2Path, programList[1], p1p2shmidStr, p2p3shmidStr, typeStr, NULL); 
-        perror("execl P2 failed"); 
-        exit(EXIT_FAILURE); 
+      execl(p2Path, programList[1], p1p2shmidStr, p2p3shmidStr, typeStr, NULL); 
+      perror("execl P2 failed"); 
+      exit(EXIT_FAILURE); 
     }
 
     int p3 = fork(); 
     if(p3 == 0)
     {
-        execl(p3Path, programList[2], p2p3shmidStr, argnStr, typeStr, NULL); 
+      execl(p3Path, programList[2], p2p3shmidStr, argnStr, typeStr, NULL);
     }
 
     //Waiting for the parent to exit 
     if(p1 > 0)
-        waitpid(p1, NULL, 0); 
+      waitpid(p1, NULL, 0); 
     if(p2 > 0)
-        waitpid(p2, NULL, 0); 
+      waitpid(p2, NULL, 0); 
     if(p3 > 0)
-        waitpid(p3, NULL, 0); 
+      waitpid(p3, NULL, 0); 
     
 
     printf("Program has finished executing: Removing shared memory segements...\n"); 

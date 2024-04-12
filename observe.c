@@ -61,8 +61,9 @@ void bufwrite(ringBuffer *sb, char *item)
   pair = !sb->reading;
   index = !sb->slot[pair];
 
-  printf("producing %s to buffer\n", item);
+  printf("Writing Process 1: %s\n", item);
   strncpy(sb->buffer + 2*pair*MAX_SLOT_LENGTH + index*MAX_SLOT_LENGTH, item, MAX_SLOT_LENGTH);
+  printf("Index: %d, Value: %s\n", 2*pair*MAX_SLOT_LENGTH + index*MAX_SLOT_LENGTH, sb->buffer + 2*pair*MAX_SLOT_LENGTH + index*MAX_SLOT_LENGTH);
   sb->slot[pair] = index;
   sb->latest = pair;
   sleep(1);
@@ -155,7 +156,7 @@ int main(int argc, char *argv[])
 	else
 	  {
 	    writeToBuffer(rb, nameValCombined);
-	  } 
+	  }
     }
 
     //This is to indicate termination 

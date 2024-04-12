@@ -13,6 +13,7 @@
 #define MAX_PAIRS_PER_SAMPLE 10 //The maximum number of sample Data
 #define MAX_NUM_OF_SAMPLES 20 
 #define MAX_UNIQUE_NAMES 50
+int prev = 0;
 
 
 
@@ -98,9 +99,15 @@ char *bufread(ringBuffer *sb)
   pair = sb->latest;
   sb->reading = pair;
   index = sb->slot[pair];
-  char *item = (sb->buffer + 2*pair*MAX_SLOT_LENGTH + index*MAX_SLOT_LENGTH);
-  printf("Reading in PROCESS 2: %s\n", item);
-
+  char *item = "";
+  if (prev != 2*pair*MAX_SLOT_LENGTH + index*MAX_SLOT_LENGTH)
+    {
+      item = (sb->buffer + 2*pair*MAX_SLOT_LENGTH + index*MAX_SLOT_LENGTH);
+      printf("Reading in PROCESS 2: %s\n", item);
+      printf("Index: %d, Value: %s\n", 2*pair*MAX_SLOT_LENGTH + index*MAX_SLOT_LENGTH, item);
+      prev = 2*pair*MAX_SLOT_LENGTH + index*MAX_SLOT_LENGTH;
+    }
+  sleep(1);
   return (item);
 }
 
@@ -109,7 +116,7 @@ int main(int argc, char *argv[])
 {
     printf("In process 2\n"); 
     //Receiving shmid for shared buffer + Creating ringBuffer
-    int shmid = atoi(argv[1]);    
+    int shmid = atoi(argv[1]);
     int p2p3Shmid = atoi(argv[2]);
     char *sync = argv[3];
 
@@ -181,7 +188,10 @@ int main(int argc, char *argv[])
     else
       {
         str = readFromBuffer(rb);
-      } 
+      }
+
+      if (strcmp(str, "") != 0)
+      {
         //Checking if we reached an EOF signal
         if(strcmp(str, "EOF")==0)
         {
@@ -255,7 +265,7 @@ int main(int argc, char *argv[])
                 currentSampleDataIndex++; 
             }
         }
-
+      }
     } 
 
 

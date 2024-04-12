@@ -7,13 +7,14 @@
 #include <semaphore.h> 
 #include <string.h> //For string compare
 #include <stdbool.h>
-#include <string.h> 
+#include <string.h>
+#include <ctype.h>
 #define MAX_DATA_LENGTH 20 //Length of the Data name=Value / max length of name / max length of Value
 #define MAX_PAIRS 20 //Number of nameValuePairs 
 #define MAX_PAIRS_PER_SAMPLE 10 //The maximum number of sample Data
 #define MAX_NUM_OF_SAMPLES 20 
 #define MAX_UNIQUE_NAMES 50
-#define MAX_SLOT_LENGTH 1000//Max lenght of each slot of the buffer 
+#define MAX_SLOT_LENGTH 1000//Max lenght of each slot of the buffer
 
 
 //Struct that stores parsed data
@@ -64,10 +65,10 @@ char *bufread(ringBuffer *sb)
   pair = sb->latest;
   sb->reading = pair;
   index = sb->slot[pair];
-
   char *item = (sb->buffer + 2*pair*MAX_SLOT_LENGTH + index*MAX_SLOT_LENGTH);
-  printf("Reading in PROCESS 2: %s\n", item);
-
+  printf("Reading in PROCESS 3: %s\n", item);
+  printf("Index: %d, Value: %s\n", 2*pair*MAX_SLOT_LENGTH + index*MAX_SLOT_LENGTH, item);
+  sleep(1);
   return (item);
 }
 
@@ -79,6 +80,12 @@ NameValuePair parseSampleDataStr(char *sampleData, int argn)
         strncpy(eofCheck.name, "EOF", MAX_DATA_LENGTH); 
         return eofCheck; 
     }
+
+    if (strcmp(sampleData, "")==0)
+      {
+	strncpy(eofCheck.name, "", MAX_DATA_LENGTH);
+        return eofCheck;
+      }
 
     int whichNameValuePair = 1; 
     char *subString; 
@@ -133,14 +140,25 @@ int main(int argc, char *argv[])
 
     //Set up gnuplot by including one data input so gnuplot can determine a range 
     NameValuePair tempNVP;
+    if (strcmp(sync, "async") == 0)
+        {
+          tempNVP = parseSampleDataStr(bufread(sbP2P3), argn);
+        }
+      else
+        {
+          tempNVP = parseSampleDataStr(readFromBuffer(rbP2P3), argn);
+        }
+    while (strcmp(tempNVP.name, "")==0)
+    {
       if (strcmp(sync, "async") == 0)
-      {
-         tempNVP = parseSampleDataStr(bufread(sbP2P3), argn);
-      }
-    else
-      {
-        tempNVP = parseSampleDataStr(readFromBuffer(rbP2P3), argn);
-      }
+	{
+	  tempNVP = parseSampleDataStr(bufread(sbP2P3), argn);
+	}
+      else
+	{
+	  tempNVP = parseSampleDataStr(readFromBuffer(rbP2P3), argn);
+	}
+    }
     fprintf(file, "%d %s\n", 1, tempNVP.value); 
     fflush(file); 
     //system("gnuplot 'live_plot.gp' &"); //Allows for gnuplot to run in the background 
@@ -151,21 +169,20 @@ int main(int argc, char *argv[])
         NameValuePair tempNVP; 
         if (strcmp(sync, "async") == 0)
 	  {
-	    tempNVP = parseSampleDataStr(bufread(sbP2P3), argn);
+	      tempNVP = parseSampleDataStr(bufread(sbP2P3), argn);
 	  }
 	else
 	  {
-	    tempNVP = parseSampleDataStr(readFromBuffer(rbP2P3), argn);
-	  } 
-
-        //Exit the loop as soon as we reach a EOF signal 
-        if(strcmp(tempNVP.name, "EOF") == 0)
-            break; 
+	      tempNVP = parseSampleDataStr(readFromBuffer(rbP2P3), argn);
+	  }
+	
+	//Exit the loop as soon as we reach a EOF signal 
+	if(strcmp(tempNVP.name, "EOF") == 0)
+	  break; 
         
-        fprintf(file, "%d %s\n", x+1, tempNVP.value); 
-        fflush(file);  
-        sleep(1); 
-        x++;  
+	fprintf(file, "%d %s\n", x+1, tempNVP.value); 
+	fflush(file);   
+	x++;
     }
  
     fclose(file); 
