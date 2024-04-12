@@ -1,6 +1,5 @@
-#include <stdio.h>
+#include "libobjdata.h"
 
-<<<<<<< HEAD
 void init_buffer (buffer_t *b)
 {
   b->in_marker = b->out_marker = b->count = 0;
@@ -214,9 +213,4 @@ int main(int argc, char *argv[])
   }
   dlclose(lib_handle);
   return 0;
-=======
-int main() {
-    printf("Hello World!\n");
-    return 0;
->>>>>>> b11a32094d17e2ba6e004ba9e9b608688e3bc569
 }

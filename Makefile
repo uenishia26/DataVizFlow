@@ -30,7 +30,7 @@ observe_t.o: observe_t.c
 	gcc -fPIC -c observe_t.c -o observe_t.o
 reconstruct_t.o: reconstruct_t.c
 	gcc -fPIC -c reconstruct_t.c -o reconstruct_t.o
-tapplot_t.o:
+tapplot_t.o: tapplot_t.c
 	gcc -fPIC -c tapplot_t.c -o tapplot_t.o
 share_lib: get_test.o tappet.o buffer.o observe_t.o reconstruct_t.o tapplot_t.o
 	gcc -shared -o libobjdata.so get_test.o tappet.o buffer.o observe_t.o reconstruct_t.o tapplot_t.o -pthread
@@ -40,15 +40,15 @@ tappet: tappet.o share_lib
 	gcc $(CFLAGS) tappet.o -L. -o tappet -pthread -ldl
 
 tapper: tapper.o
-	gcc -o tapper tapper.o
+	gcc -o tapper tapper.o -pthread
 write: write.o
-	gcc -o write write.o
+	gcc -o write write.o -pthread
 observe: observe.o
-	gcc -o observe observe.o 
+	gcc -o observe observe.o -pthread
 reconstruct: reconstruct.o
-	gcc -o reconstruct reconstruct.o
+	gcc -o reconstruct reconstruct.o -pthread
 tapplot: tapplot.o
-	gcc -o tapplot tapplot.o
+	gcc -o tapplot tapplot.o -pthread
 tapper.o: tapper.c
 	gcc -c tapper.c 
 write.o: write.c
