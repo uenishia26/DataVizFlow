@@ -46,7 +46,6 @@ void execute(Command *command)  {
         }
     }
 
-    // Check if the command contains '&>' to redirect both standard ouput and error
     for (int i = 0; argv[i] != NULL; i++) {
         if (strcmp(argv[i], "&>") == 0) {
             both_file = argv[i + 1];

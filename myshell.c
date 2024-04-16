@@ -15,7 +15,6 @@ int main(int argc, char *argv[]) {
     signal(SIGINT, sigint_handler);
     signal(SIGCHLD, sigchld_handler);
 
-
     char cmdline[MAXLINE];
 
     if (isatty(STDIN_FILENO)) {
