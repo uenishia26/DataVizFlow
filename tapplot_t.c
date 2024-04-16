@@ -1,8 +1,7 @@
 #include "libobjdata.h" 
-#define MAX_PAIRS 20 //Number of nameValuePairs 
 #define MAX_PAIRS_PER_SAMPLE 10 //The maximum number of sample Data
-#define MAX_NUM_OF_SAMPLES 20 
-#define MAX_UNIQUE_NAMES 50 
+#define MAX_NUM_OF_SAMPLES 500
+#define MAX_UNIQUE_NAMES 10 
 
 //SampleData (contains a list of NameValuePairs) For each sample can hold up to 50 NameValPair
 typedef struct 
@@ -54,7 +53,6 @@ void *tapplot(void *arg)
   //printf("In process 3\n");
   thread_arg *targ = (thread_arg *) arg; //get the arguments sent to thread
   int argn = targ->argn;
-  char *perv_val;
 
   //Create/Open the file in append mode 
   FILE *file = fopen("dataFile.txt", "w"); 
@@ -72,11 +70,11 @@ void *tapplot(void *arg)
     NameValuePair tempNVP;
     if (targ->is_sync == 0)
     {
-      tempNVP = parseSampleDataStr(consume (targ->buff[1]), targ->argn);
+      tempNVP = parseSampleDataStr(consume (targ->buff[1]), argn);
     }
     else if (targ->is_sync == 1)
     {
-      tempNVP = parseSampleDataStr(slotread (targ->buff[1]), targ->argn);
+      tempNVP = parseSampleDataStr(slotread (targ->buff[1]), argn);
     }
     //printf("value: %s\n", tempNVP.value);
 
@@ -90,7 +88,7 @@ void *tapplot(void *arg)
       fflush(file);
       if (x == 1)
       {
-	system("gnuplot 'live_plot.gp' &"); //Allows for gnuplot to run in the background
+	      system("gnuplot 'live_plot.gp' &"); //Allows for gnuplot to run in the background
       }
       printf("%d %s\n", x, tempNVP.value);
       x++;

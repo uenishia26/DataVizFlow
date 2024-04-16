@@ -2,7 +2,7 @@ CC = gcc
 CFLAGS = -g -Wall
 OBJS = myshell.o execute.o parser.o signals.o
 
-all: myshell tapper write read observe reconstruct tapplot
+all: myshell tapper write read observe reconstruct tapplot tappet
 
 myshell: $(OBJS)
 	$(CC) $(CFLAGS) $(OBJS) -o myshell
@@ -22,8 +22,6 @@ signals.o: signals.c signals.h
 clean:
 	rm -f -f *.o tapper write read observe reconstruct tapplot observe_t reconstruct_t tapplot_t dataFile.txt tappet libobjdata.so myshell
 
-get_test.o: get_test.c
-	gcc -fPIC -c get_test.c -o get_test.o
 buffer.o: buffer.c
 	gcc -fPIC -c buffer.c -o buffer.o
 observe_t.o: observe_t.c
@@ -32,8 +30,8 @@ reconstruct_t.o: reconstruct_t.c
 	gcc -fPIC -c reconstruct_t.c -o reconstruct_t.o
 tapplot_t.o: tapplot_t.c
 	gcc -fPIC -c tapplot_t.c -o tapplot_t.o
-share_lib: get_test.o tappet.o buffer.o observe_t.o reconstruct_t.o tapplot_t.o
-	gcc -shared -o libobjdata.so get_test.o tappet.o buffer.o observe_t.o reconstruct_t.o tapplot_t.o -pthread
+share_lib:  tappet.o buffer.o observe_t.o reconstruct_t.o tapplot_t.o
+	gcc -shared -o libobjdata.so tappet.o buffer.o observe_t.o reconstruct_t.o tapplot_t.o -pthread
 tappet.o: tappet.c
 	gcc -fPIC -c tappet.c -o tappet.o
 tappet: tappet.o share_lib

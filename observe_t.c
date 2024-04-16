@@ -1,5 +1,5 @@
 #include "libobjdata.h" //Add header file
-#define MAX_PAIRS 50 //Number of nameValuePairs 
+#define MAX_PAIRS 10000 //Number of nameValuePairs 
 
 void addNameValuePair(int index, NameValuePair *pairs, char *name, char *value)
 {
@@ -37,17 +37,17 @@ void *observe(void *arg)
       */
       if(strcmp(pairs[x].name, name) == 0)
       {
-	nameExist = true;
-	setDetermined = true;
-	break;  
+	      nameExist = true;
+	      setDetermined = true;
+	      break;  
       }
     }
     if(nameExist)
     {
       if(strcmp(pairs[x].value, value) != 0)
       {
-	addNameValuePair(index, pairs, name, value);
-	index++;
+	      addNameValuePair(index, pairs, name, value);
+	      index++;
       }
     }
     //The name must be unique && the set size cannot be determined

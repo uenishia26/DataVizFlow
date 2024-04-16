@@ -66,7 +66,7 @@ void slotwrite(buffer_t *b, char *item, size_t size)
   memcpy (b->buffer[pair][index].data, item, size);
   b->slots[pair] = index;
   b->latest = pair;
-  for (int j = 0; j < 1E6; j++);
+  for (int j = 0; j < 1E7; j++);
   sched_yield ();
 }
 
@@ -85,7 +85,7 @@ char *slotread(buffer_t *b)
     //printf("Reading %s into (%d, %d)\n", item, pair, index);
     b->prev = 2*pair + index;
   }
-  for (int j = 0; j < 5E5; j++);
+  for (int j = 0; j < 5E6; j++);
   sched_yield ();
   return (item);
 }

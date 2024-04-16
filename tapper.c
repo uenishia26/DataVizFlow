@@ -230,7 +230,14 @@ int main(int argc, char *argv[])
     if(p3 > 0)
       waitpid(p3, NULL, 0); 
     
-
+    
+    char line[1000]; 
+    FILE *file = fopen("dataFile.txt", "r"); 
+    while(fgets(line, sizeof(line), file))
+    {
+        printf("%s", line); 
+    }
+    fclose(file); 
     //printf("Program has finished executing: Removing shared memory segements...\n"); 
     shmctl(p1p2memoryID, IPC_RMID, NULL); 
     shmctl(p2p3memoryID, IPC_RMID, NULL); 

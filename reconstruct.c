@@ -8,11 +8,10 @@
 #include <stdbool.h>
 #include <string.h> 
 #define MAX_SLOT_LENGTH 1000//Max lenght of each slot of the buffer 
-#define MAX_DATA_LENGTH 15 //Length of the Data name=Value / max length of name / max length of Value
-#define MAX_PAIRS 20 //Number of nameValuePairs 
+#define MAX_DATA_LENGTH 20 //Length of the Data name=Value / max length of name / max length of Value
 #define MAX_PAIRS_PER_SAMPLE 10 //The maximum number of sample Data
-#define MAX_NUM_OF_SAMPLES 20 
-#define MAX_UNIQUE_NAMES 50
+#define MAX_NUM_OF_SAMPLES 500
+#define MAX_UNIQUE_NAMES 10
 int prev = 0;
 
 
@@ -77,7 +76,7 @@ void writeToBuffer(ringBuffer *rb, char *str)
     strncpy(rb->buffer + rb->tail*MAX_SLOT_LENGTH, str, MAX_SLOT_LENGTH);  
     rb->tail = (rb->tail+1) % rb->bufferSize; 
     sem_post(&rb->filledSlots);
-    sleep(1); 
+    usleep(500000); 
 }
 
 void bufwrite(ringBuffer *sb, char *item)
@@ -86,11 +85,11 @@ void bufwrite(ringBuffer *sb, char *item)
   pair = !sb->reading;
   index = !sb->slot[pair];
 
-  //printf("producing %s to buffer\n", item);
+ //printf("producing %s to buffer\n", item);
   strncpy(sb->buffer + 2*pair*MAX_SLOT_LENGTH + index*MAX_SLOT_LENGTH, item, MAX_SLOT_LENGTH);
   sb->slot[pair] = index;
   sb->latest = pair;
-  sleep(1);
+  usleep(100000); 
 }
 
 char *bufread(ringBuffer *sb)
@@ -100,14 +99,14 @@ char *bufread(ringBuffer *sb)
   sb->reading = pair;
   index = sb->slot[pair];
   char *item = "";
-  if (prev != 2*pair*MAX_SLOT_LENGTH + index*MAX_SLOT_LENGTH)
+  if (prev != 2*pair + index)
     {
       item = (sb->buffer + 2*pair*MAX_SLOT_LENGTH + index*MAX_SLOT_LENGTH);
       //printf("Reading in PROCESS 2: %s\n", item);
       //printf("Index: %d, Value: %s\n", 2*pair*MAX_SLOT_LENGTH + index*MAX_SLOT_LENGTH, item);
-      prev = 2*pair*MAX_SLOT_LENGTH + index*MAX_SLOT_LENGTH;
+      prev = 2*pair + index;
     }
-  sleep(1);
+  usleep(50000); 
   return (item);
 }
 
@@ -155,7 +154,7 @@ int main(int argc, char *argv[])
 
     int currentSampleIndex = 0; 
     bool endNameIdentified = false; 
-    char endName [20];
+    char endName [25];
     int currentSampleDataIndex = 0;  
     int prevSampleNVPIndex = 0; //Keeps track of index when incremneting through the prevSample 
 
@@ -292,6 +291,7 @@ int main(int argc, char *argv[])
         //Writing to the P2P3 Buffer Slot  
 	if (strcmp(sync, "async") == 0)
 	  {
+        //fflush(stdout); 
 	    bufwrite(sbP2P3, sampleDataAsString);
 	  }
 	else

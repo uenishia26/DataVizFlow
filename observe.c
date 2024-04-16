@@ -7,7 +7,7 @@
 #include <string.h> //For string compare
 #include <stdbool.h>
 #define MAX_DATA_LENGTH 20 //Length of the Data name=Value / max length of name / max length of Value
-#define MAX_PAIRS 50 //Number of nameValuePairs 
+#define MAX_PAIRS 10000 //Number of nameValuePairs 
 #define MAX_SLOT_LENGTH 1000//Max lenght of each slot of the buffer 
 
 
@@ -66,7 +66,7 @@ void bufwrite(ringBuffer *sb, char *item)
   //printf("Index: %d, Value: %s\n", 2*pair*MAX_SLOT_LENGTH + index*MAX_SLOT_LENGTH, sb->buffer + 2*pair*MAX_SLOT_LENGTH + index*MAX_SLOT_LENGTH);
   sb->slot[pair] = index;
   sb->latest = pair;
-  sleep(1);
+  usleep(100000); 
 }
 
 

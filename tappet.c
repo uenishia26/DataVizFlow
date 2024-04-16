@@ -48,7 +48,7 @@ int main(int argc, char *argv[])
   
   if (!lib_handle)
   {
-    printf(dlerror());
+    dlerror();
     return 1;
   }
 
@@ -63,13 +63,13 @@ int main(int argc, char *argv[])
     {
       if (strspn(argv[index], "0123456789"))
       {
-	argn = atoi(argv[index]);
-	//printf("argn: %d\n", argn);
+	      argn = atoi(argv[index]);
+	      //printf("argn: %d\n", argn);
       }
       else
       {
-	optind = index; 
-	break;
+	      optind = index; 
+	      break;
       }
     }
   }
@@ -80,14 +80,14 @@ int main(int argc, char *argv[])
     switch(options)
     {
       case 'b':
-	typeBuffer = optarg; 
-	break; 
+	      typeBuffer = optarg; 
+	      break; 
       case 's':
-	size = atoi(optarg); 
-	break; 
+	      size = atoi(optarg); 
+	      break; 
       case '?':
-	printf("Unknown option"); 
-	break; 
+	      printf("Unknown option"); 
+	      break; 
     }
   }
   
@@ -143,14 +143,14 @@ int main(int argc, char *argv[])
       //printf("%s\n", funcList[i]);
       if (error_msg)
       {
-	dlerror();
-	dlclose(lib_handle);
-	return 1;
+	      dlerror();
+	      dlclose(lib_handle);
+	      return 1;
       }
       if (pthread_create (&thread_table[i], NULL, (void *(*)(void *))func, arg) != 0)
       {
-	perror ("Unable to create thread");
-	exit (1);
+	      perror ("Unable to create thread");
+	      exit (1);
       }
     }
     for (int i = 0; i < funcIndex; i++)
